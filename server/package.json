@@ -1,0 +1,11 @@
+{
+  "name": "workradar-server",
+  "version": "1.1.0",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "imap": "^0.8.19",
+    "mailparser": "^3.7.1"
+  }
+}
