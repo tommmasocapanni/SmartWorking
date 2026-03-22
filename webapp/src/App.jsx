@@ -7,10 +7,10 @@ const LIGHT = `
   --card-shadow:0 4px 24px rgba(0,0,0,.07);
 `;
 const DARK = `
-  --bg:#0e0e0c;--surface:#161614;--surface2:#1e1e1b;
-  --border:#2a2a26;--border2:#333330;
-  --text:#f0ede8;--text2:#9a9790;--text3:#555450;
-  --card-shadow:0 4px 24px rgba(0,0,0,.4);
+  --bg:#0a0a09;--surface:#141412;--surface2:#1c1c1a;
+  --border:#252522;--border2:#2e2e2b;
+  --text:#f0ede8;--text2:#a8a5a0;--text3:#606060;
+  --card-shadow:0 4px 24px rgba(0,0,0,.5);
 `;
 
 const G = `
@@ -22,7 +22,7 @@ html,body{height:100%}
 body{background:var(--bg);font-family:'DM Sans',sans-serif;color:var(--text);-webkit-font-smoothing:antialiased;transition:background .3s,color .3s}
 .app{min-height:100vh;background-color:var(--bg);background-image:radial-gradient(circle,var(--border) 1px,transparent 1px);background-size:24px 24px;transition:background .3s}
 .topbar{position:sticky;top:0;z-index:100;background:rgba(245,245,243,0.9);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:0 20px;height:56px;display:flex;align-items:center;justify-content:space-between;transition:background .3s,border-color .3s}
-[data-dark="true"] .topbar{background:rgba(14,14,12,0.9)}
+[data-dark="true"] .topbar{background:rgba(10,10,9,0.92)}
 .wordmark{font-family:'DM Mono',monospace;font-size:13px;letter-spacing:0.08em;color:var(--text);display:flex;align-items:center;gap:10px}
 .dot-logo{display:grid;grid-template-columns:1fr 1fr;gap:3px}
 .dot-logo span{width:5px;height:5px;background:var(--text);border-radius:50%;display:block;transition:background .3s}
@@ -33,7 +33,7 @@ button{font-family:'DM Sans',sans-serif;cursor:pointer;border:none;outline:none;
 .btn-solid{background:var(--text);color:var(--bg)}
 .btn-solid:hover{opacity:.85}
 .btn-solid:disabled{opacity:.4;cursor:not-allowed}
-.btn-outline{background:transparent;border:1px solid var(--border2);color:var(--text2)}
+.btn-outline{background:transparent;border:1px solid var(--border2);color:var(--text2);transition:all .15s}
 .btn-outline:hover{border-color:var(--text);color:var(--text)}
 .btn-outline.on{border-color:var(--text);color:var(--text);background:var(--surface)}
 .btn-icon{background:transparent;border:1px solid var(--border2);color:var(--text2);width:34px;height:34px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:14px}
@@ -47,7 +47,7 @@ button{font-family:'DM Sans',sans-serif;cursor:pointer;border:none;outline:none;
 .autosync-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--text3);margin-right:4px;vertical-align:middle}
 .autosync-dot.active{background:#4ade80;animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-.stats{display:flex;gap:1px;margin-bottom:28px;background:var(--border);border-radius:var(--radius);overflow:hidden;border:1px solid var(--border)}
+.stats{display:flex;gap:1px;margin-bottom:28px;background:var(--border2);border-radius:var(--radius);overflow:hidden;border:1px solid var(--border2)}
 .stat{flex:1;background:var(--surface);padding:14px 14px 12px;transition:background .3s}
 .stat:first-child{border-radius:var(--radius) 0 0 var(--radius)}
 .stat:last-child{border-radius:0 var(--radius) var(--radius) 0}
@@ -309,7 +309,9 @@ function CardItem(props) {
 
 export default function WorkRadar() {
   var [jobs,setJobs]=useState([]);
-  var [dark,setDark]=useState(false);
+  var [dark,setDark]=useState(function(){
+    return window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
   var [undoToast,setUndoToast]=useState(null);
   var [loading,setLoading]=useState(false);
   var [ptrState,setPtrState]=useState('idle'); // idle | pulling | ready | refreshing
@@ -350,12 +352,16 @@ export default function WorkRadar() {
     var b=load("wr_b10");if(b)setSelectedBoxes(b);
     var as=load("wr_as");if(as)setAutoSync(as);
     var ls=load("wr_ls");if(ls)setLastSync(ls);
-    var dk=load("wr_dark");if(dk)setDark(dk);
   },[]);
 
   useEffect(function(){if(jobs.length)save("wr_j10",jobs);},[jobs]);
-  useEffect(function(){save("wr_dark",dark);},[dark]);
 
+  useEffect(function(){
+    var mq=window.matchMedia('(prefers-color-scheme: dark)');
+    function onChange(e){ setDark(e.matches); }
+    mq.addEventListener('change',onChange);
+    return function(){ mq.removeEventListener('change',onChange); };
+  },[]);
   var checkServer=useCallback(async function(){
     if(!cfg.serverUrl){setServerOnline(null);return;}
     try{var r=await fetch(cfg.serverUrl+"/health",{signal:AbortSignal.timeout(4000)});setServerOnline(r.ok);}
@@ -533,7 +539,6 @@ export default function WorkRadar() {
           </div>
           <div className="topbar-right">
             {cfg.serverUrl&&<div className="server-status"><span className={serverClass}/>{serverOnline===true?"online":serverOnline===false?"offline":"..."}</div>}
-            <button className="btn-icon" onClick={function(){setDark(function(d){return !d;});}} title="Dark mode">{dark?"☀️":"🌙"}</button>
             <button className={"btn btn-outline"+(cfgSaved?" on":"")} onClick={function(){setShowSetup(true);}}>{cfgSaved?"configurato":"+ configura"}</button>
             <button className="btn btn-solid" onClick={function(){doSync(false);}} disabled={loading}>{loading?"...":"Sincronizza"}</button>
           </div>
