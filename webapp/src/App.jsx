@@ -77,7 +77,7 @@ button{font-family:'DM Sans',sans-serif;cursor:pointer;border:none;outline:none;
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;max-width:580px;width:100%;max-height:82vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.1);animation:slideUp .22s ease}
 @keyframes slideUp{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
-.modal-eyebrow{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.modal-eyebrow{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:10px}
 .modal-title{font-size:18px;font-weight:500;letter-spacing:-.02em;line-height:1.35;margin-bottom:24px}
 .modal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:24px}
 .mg-cell{background:var(--surface);padding:14px 16px}
@@ -111,9 +111,11 @@ function age(d) {
   const diff = Math.floor((Date.now()-new Date(d))/86400000);
   return diff===0?"oggi":diff===1?"ieri":diff+"g";
 }
+
 function fmtDate(d) {
   if (!d) return "-";
-  const dt = new Date(d); if (isNaN(dt)) return d;
+  const dt = new Date(d);
+  if (isNaN(dt)) return d;
   return dt.toLocaleDateString("it-IT",{day:"2-digit",month:"short",year:"numeric"});
 }
 
@@ -121,7 +123,8 @@ async function fetchRegisterJobs(cfg) {
   const headers = {"Content-Type":"application/json"};
   if (cfg.secret) headers["Authorization"] = "Bearer " + cfg.secret;
   const res = await fetch(cfg.serverUrl + "/sync", {
-    method:"POST", headers: headers,
+    method: "POST",
+    headers: headers,
     body: JSON.stringify({
       email: cfg.email,
       password: cfg.password,
@@ -151,9 +154,13 @@ export default function WorkRadar() {
   const [setupTab, setSetupTab] = useState("server");
   const [serverOnline, setServerOnline] = useState(null);
   const [cfg, setCfg] = useState({
-    serverUrl: "", secret: "",
-    host: "webmail.register.it", port: "993",
-    email: "", password: "", apiKey: ""
+    serverUrl: "",
+    secret: "",
+    host: "webmail.register.it",
+    port: "993",
+    email: "",
+    password: "",
+    apiKey: ""
   });
   const [cfgSaved, setCfgSaved] = useState(false);
 
@@ -187,6 +194,21 @@ export default function WorkRadar() {
     return function() { clearInterval(t); };
   }, [checkServer]);
 
+  function setField(key, val) {
+    setCfg(function(prev) {
+      const next = {};
+      next.serverUrl = prev.serverUrl;
+      next.secret = prev.secret;
+      next.host = prev.host;
+      next.port = prev.port;
+      next.email = prev.email;
+      next.password = prev.password;
+      next.apiKey = prev.apiKey;
+      next[key] = val;
+      return next;
+    });
+  }
+
   function saveCfg() {
     window.storage.set("wr_cfg2", JSON.stringify(cfg)).catch(function(){});
     setCfgSaved(true);
@@ -199,7 +221,14 @@ export default function WorkRadar() {
       const ids = new Set(prev.map(function(j) { return j.id; }));
       const fresh = incoming
         .filter(function(j) { return !ids.has(j.id); })
-        .map(function(j) { return Object.assign({}, j, { stato: "nuovo" }); });
+        .map(function(j) {
+          const nj = {};
+          nj.id = j.id; nj.titolo = j.titolo; nj.descrizione = j.descrizione;
+          nj.budget = j.budget; nj.scadenza = j.scadenza; nj.fonte = j.fonte;
+          nj.fonte_tipo = j.fonte_tipo; nj.data_ricezione = j.data_ricezione;
+          nj.email_originale = j.email_originale; nj.stato = "nuovo";
+          return nj;
+        });
       return fresh.concat(prev);
     });
   }
@@ -223,14 +252,33 @@ export default function WorkRadar() {
 
   function setStatus(id, stato, e) {
     if (e) e.stopPropagation();
-    setJobs(function(p) { return p.map(function(j) { return j.id === id ? Object.assign({}, j, { stato: stato }) : j; }); });
-    if (selected && selected.id === id) setSelected(function(s) { return Object.assign({}, s, { stato: stato }); });
+    setJobs(function(p) {
+      return p.map(function(j) {
+        if (j.id !== id) return j;
+        const nj = {}; nj.id=j.id; nj.titolo=j.titolo; nj.descrizione=j.descrizione;
+        nj.budget=j.budget; nj.scadenza=j.scadenza; nj.fonte=j.fonte;
+        nj.fonte_tipo=j.fonte_tipo; nj.data_ricezione=j.data_ricezione;
+        nj.email_originale=j.email_originale; nj.stato=stato;
+        return nj;
+      });
+    });
+    if (selected && selected.id === id) {
+      setSelected(function(s) {
+        const ns = {}; ns.id=s.id; ns.titolo=s.titolo; ns.descrizione=s.descrizione;
+        ns.budget=s.budget; ns.scadenza=s.scadenza; ns.fonte=s.fonte;
+        ns.fonte_tipo=s.fonte_tipo; ns.data_ricezione=s.data_ricezione;
+        ns.email_originale=s.email_originale; ns.stato=stato;
+        return ns;
+      });
+    }
   }
 
   const filtered = jobs.filter(function(j) {
     if (filter !== "tutti" && j.stato !== filter) return false;
     const q = search.toLowerCase();
-    return !q || [j.titolo, j.descrizione, j.fonte].some(function(s) { return (s || "").toLowerCase().includes(q); });
+    return !q || [j.titolo, j.descrizione, j.fonte].some(function(s) {
+      return (s || "").toLowerCase().indexOf(q) !== -1;
+    });
   });
 
   const stats = {
@@ -239,6 +287,9 @@ export default function WorkRadar() {
     applicato: jobs.filter(function(j) { return j.stato === "applicato"; }).length,
     budget: jobs.filter(function(j) { return j.budget && j.budget !== "null"; }).length
   };
+
+  const serverClass = "server-dot" + (serverOnline === true ? " online" : serverOnline === false ? " offline" : "");
+  const serverLabel = serverOnline === true ? "server online" : serverOnline === false ? "server offline" : "...";
 
   return (
     <>
@@ -252,8 +303,8 @@ export default function WorkRadar() {
           <div className="topbar-right">
             {cfg.serverUrl && (
               <div className="server-status">
-                <span className={"server-dot" + (serverOnline === true ? " online" : serverOnline === false ? " offline" : "")}/>
-                {serverOnline === true ? "server online" : serverOnline === false ? "server offline" : "..."}
+                <span className={serverClass}/>
+                {serverLabel}
               </div>
             )}
             <button className={"btn btn-outline" + (cfgSaved ? " on" : "")} onClick={function(){ setShowSetup(true); }}>
@@ -272,22 +323,38 @@ export default function WorkRadar() {
           </div>
 
           <div className="stats">
-            {[{l:"Totali",n:stats.totale},{l:"Nuovi",n:stats.nuovo},{l:"Applicato",n:stats.applicato},{l:"Con budget",n:stats.budget}].map(function(s) {
-              return <div className="stat" key={s.l}><div className="stat-n">{s.n}</div><div className="stat-l">{s.l}</div></div>;
+            {[
+              {l:"Totali", n:stats.totale},
+              {l:"Nuovi", n:stats.nuovo},
+              {l:"Applicato", n:stats.applicato},
+              {l:"Con budget", n:stats.budget}
+            ].map(function(s) {
+              return (
+                <div className="stat" key={s.l}>
+                  <div className="stat-n">{s.n}</div>
+                  <div className="stat-l">{s.l}</div>
+                </div>
+              );
             })}
           </div>
 
-          {loading && <div className="progress-wrap"><div className="progress-label">{loadMsg}</div><div className="progress-track"><div className="progress-fill"/></div></div>}
+          {loading && (
+            <div className="progress-wrap">
+              <div className="progress-label">{loadMsg}</div>
+              <div className="progress-track"><div className="progress-fill"/></div>
+            </div>
+          )}
           {error && <div className="err">! {error}</div>}
 
           <div className="toolbar">
             <button className={"btn btn-outline" + (filter === "tutti" ? " on" : "")} onClick={function(){ setFilter("tutti"); }}>Tutti</button>
             <div className="toolbar-sep"/>
             {STATUSES.map(function(s) {
+              const count = jobs.filter(function(j){ return j.stato===s; }).length;
               return (
                 <button key={s} className={"btn btn-outline" + (filter === s ? " on" : "")} onClick={function(){ setFilter(s); }}>
                   {STATUS_LABEL[s]}
-                  <span style={{marginLeft:5,opacity:.4,fontFamily:"'DM Mono',monospace",fontSize:10}}>{jobs.filter(function(j){ return j.stato===s; }).length}</span>
+                  <span style={{marginLeft:5,opacity:0.4,fontFamily:"DM Mono,monospace",fontSize:10}}>{count}</span>
                 </button>
               );
             })}
@@ -295,19 +362,23 @@ export default function WorkRadar() {
           </div>
 
           <div className="grid">
-            {jobs.length === 0 && !loading ? (
+            {jobs.length === 0 && !loading && (
               <div className="empty">
                 <div className="empty-icon">. . .</div>
                 <div className="empty-title">Nessun lavoro</div>
                 <div className="empty-sub">Configura le credenziali e clicca Sincronizza</div>
               </div>
-            ) : filtered.length === 0 ? (
+            )}
+            {jobs.length > 0 && filtered.length === 0 && (
               <div className="empty">
                 <div className="empty-icon">0</div>
                 <div className="empty-title">Nessun risultato</div>
                 <div className="empty-sub">Cambia filtro o ricerca</div>
               </div>
-            ) : filtered.map(function(job, i) {
+            )}
+            {filtered.map(function(job, i) {
+              const hasBudget = job.budget && job.budget !== "null";
+              const nextStato = STATUSES[(STATUSES.indexOf(job.stato)+1) % STATUSES.length];
               return (
                 <div key={job.id} className={"card stato-" + job.stato} style={{animationDelay: i*30+"ms"}} onClick={function(){ setSelected(job); }}>
                   <div className="card-top">
@@ -317,14 +388,13 @@ export default function WorkRadar() {
                   <div className="card-title">{job.titolo || "Offerta"}</div>
                   <div className="card-desc">{job.descrizione || "-"}</div>
                   <div className="card-bottom">
-                    {job.budget && job.budget !== "null"
+                    {hasBudget
                       ? <div className="card-budget">{job.budget}</div>
-                      : <div className="card-budget empty">budget n.d.</div>}
-                    <span className={"pill " + job.stato} onClick={function(e){
-                      e.stopPropagation();
-                      setStatus(job.id, STATUSES[(STATUSES.indexOf(job.stato)+1) % STATUSES.length], e);
-                    }}>
-                      <span className="pill-dot"/><span>{STATUS_LABEL[job.stato]}</span>
+                      : <div className="card-budget empty">budget n.d.</div>
+                    }
+                    <span className={"pill " + job.stato} onClick={function(e){ setStatus(job.id, nextStato, e); }}>
+                      <span className="pill-dot"/>
+                      <span>{STATUS_LABEL[job.stato]}</span>
                     </span>
                   </div>
                 </div>
@@ -340,24 +410,42 @@ export default function WorkRadar() {
             <div className="modal-eyebrow">{selected.fonte} - {fmtDate(selected.data_ricezione)}</div>
             <div className="modal-title">{selected.titolo}</div>
             <div className="modal-grid">
-              <div className="mg-cell"><div className="mg-key">Budget</div><div className="mg-val">{(selected.budget && selected.budget !== "null") ? selected.budget : "-"}</div></div>
-              <div className="mg-cell"><div className="mg-key">Scadenza</div><div className="mg-val">{fmtDate(selected.scadenza)}</div></div>
-              <div className="mg-cell"><div className="mg-key">Stato</div><div className="mg-val">{STATUS_LABEL[selected.stato]}</div></div>
+              <div className="mg-cell">
+                <div className="mg-key">Budget</div>
+                <div className="mg-val">{(selected.budget && selected.budget !== "null") ? selected.budget : "-"}</div>
+              </div>
+              <div className="mg-cell">
+                <div className="mg-key">Scadenza</div>
+                <div className="mg-val">{fmtDate(selected.scadenza)}</div>
+              </div>
+              <div className="mg-cell">
+                <div className="mg-key">Stato</div>
+                <div className="mg-val">{STATUS_LABEL[selected.stato]}</div>
+              </div>
             </div>
             <div className="modal-sl">Descrizione</div>
             <div className="modal-desc">{selected.descrizione || "-"}</div>
-            {selected.email_originale && <><div className="modal-sl">Email originale</div><div className="modal-raw">{selected.email_originale}</div></>}
+            {selected.email_originale && (
+              <>
+                <div className="modal-sl">Email originale</div>
+                <div className="modal-raw">{selected.email_originale}</div>
+              </>
+            )}
             <div className="modal-sl">Cambia stato</div>
             <div className="modal-status">
               {STATUSES.map(function(s) {
+                const isActive = selected.stato === s;
                 return (
-                  <span key={s} className={"pill " + s} style={selected.stato === s ? {background:"var(--border2)"} : {}} onClick={function(e){ setStatus(selected.id, s, e); }}>
-                    <span className="pill-dot"/><span>{STATUS_LABEL[s]}</span>
+                  <span key={s} className={"pill " + s} style={isActive ? {background:"var(--border2)"} : {}} onClick={function(e){ setStatus(selected.id, s, e); }}>
+                    <span className="pill-dot"/>
+                    <span>{STATUS_LABEL[s]}</span>
                   </span>
                 );
               })}
             </div>
-            <div className="modal-close-row"><button className="btn btn-outline" onClick={function(){ setSelected(null); }}>Chiudi</button></div>
+            <div className="modal-close-row">
+              <button className="btn btn-outline" onClick={function(){ setSelected(null); }}>Chiudi</button>
+            </div>
           </div>
         </div>
       )}
@@ -372,41 +460,76 @@ export default function WorkRadar() {
               <button className={"tab" + (setupTab === "imap" ? " active" : "")} onClick={function(){ setSetupTab("imap"); }}>Email IMAP</button>
             </div>
 
-            {setupTab === "server" && <>
-  <div className="field">
-    <label>URL Server Railway</label>
-    <input value={cfg.serverUrl} onChange={function(e){ var val=e.target.value; setCfg(function(p){ return {...p, serverUrl: val}; }); }} placeholder="https://smartworking-production.up.railway.app"/>
-  </div>
-  <div className="field">
-    <label>Secret Token</label>
-    <input type="password" value={cfg.secret} onChange={function(e){ setCfg(function(p){ return Object.assign({},p,{secret:e.target.value}); })} placeholder="il tuo WORKRADAR_SECRET"/>
-  </div>
-</>}
+            {setupTab === "server" && (
+              <>
+                <div className="field">
+                  <label>URL Server Railway</label>
+                  <input
+                    value={cfg.serverUrl}
+                    onChange={function(e){ setField("serverUrl", e.target.value); }}
+                    placeholder="https://smartworking-production.up.railway.app"
+                  />
+                </div>
+                <div className="field">
+                  <label>Secret Token</label>
+                  <input
+                    type="password"
+                    value={cfg.secret}
+                    onChange={function(e){ setField("secret", e.target.value); }}
+                    placeholder="il tuo WORKRADAR_SECRET"
+                  />
+                </div>
+              </>
+            )}
 
-
-            {setupTab === "imap" && <>
-              <div className="field">
-                <label>Server IMAP</label>
-                <input value={cfg.host} onChange={function(e){ setCfg(function(p){ return Object.assign({},p,{host:e.target.value}); })} placeholder="webmail.register.it"/>
-              </div>
-              <div className="field">
-                <label>Porta</label>
-                <input value={cfg.port} onChange={function(e){ setCfg(function(p){ return Object.assign({},p,{port:e.target.value}); })} placeholder="993"/>
-              </div>
-              <div className="field">
-                <label>Email</label>
-                <input type="email" value={cfg.email} onChange={function(e){ setCfg(function(p){ return Object.assign({},p,{email:e.target.value}); })} placeholder="tua@email.it"/>
-              </div>
-              <div className="field">
-                <label>Password</label>
-                <input type="password" value={cfg.password} onChange={function(e){ setCfg(function(p){ return Object.assign({},p,{password:e.target.value}); })} placeholder="password email"/>
-              </div>
-              <div className="field">
-                <label>API Key Anthropic</label>
-                <input type="password" value={cfg.apiKey} onChange={function(e){ setCfg(function(p){ return Object.assign({},p,{apiKey:e.target.value}); })} placeholder="sk-ant-..."/>
-              </div>
-              <div className="setup-note">API key su console.anthropic.com/settings/keys</div>
-            </>}
+            {setupTab === "imap" && (
+              <>
+                <div className="field">
+                  <label>Server IMAP</label>
+                  <input
+                    value={cfg.host}
+                    onChange={function(e){ setField("host", e.target.value); }}
+                    placeholder="webmail.register.it"
+                  />
+                </div>
+                <div className="field">
+                  <label>Porta</label>
+                  <input
+                    value={cfg.port}
+                    onChange={function(e){ setField("port", e.target.value); }}
+                    placeholder="993"
+                  />
+                </div>
+                <div className="field">
+                  <label>Email</label>
+                  <input
+                    type="email"
+                    value={cfg.email}
+                    onChange={function(e){ setField("email", e.target.value); }}
+                    placeholder="tua@email.it"
+                  />
+                </div>
+                <div className="field">
+                  <label>Password</label>
+                  <input
+                    type="password"
+                    value={cfg.password}
+                    onChange={function(e){ setField("password", e.target.value); }}
+                    placeholder="password email"
+                  />
+                </div>
+                <div className="field">
+                  <label>API Key Anthropic</label>
+                  <input
+                    type="password"
+                    value={cfg.apiKey}
+                    onChange={function(e){ setField("apiKey", e.target.value); }}
+                    placeholder="sk-ant-..."
+                  />
+                </div>
+                <div className="setup-note">API key su console.anthropic.com/settings/keys</div>
+              </>
+            )}
 
             <div className="setup-actions">
               <button className="btn btn-outline" onClick={function(){ setShowSetup(false); }}>Annulla</button>
