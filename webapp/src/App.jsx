@@ -13,281 +13,304 @@ const G = `
 html,body{height:100%}
 body{background:var(--bg);font-family:'DM Sans',sans-serif;color:var(--text);-webkit-font-smoothing:antialiased}
 .app{min-height:100vh;background-color:var(--bg);background-image:radial-gradient(circle,var(--border) 1px,transparent 1px);background-size:24px 24px}
-.topbar{position:sticky;top:0;z-index:100;background:rgba(245,245,243,0.9);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;justify-content:space-between}
+.topbar{position:sticky;top:0;z-index:100;background:rgba(245,245,243,0.9);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between}
 .wordmark{font-family:'DM Mono',monospace;font-size:13px;letter-spacing:0.08em;color:var(--text);display:flex;align-items:center;gap:10px}
 .dot-logo{display:grid;grid-template-columns:1fr 1fr;gap:3px}
 .dot-logo span{width:5px;height:5px;background:var(--text);border-radius:50%;display:block}
 .dot-logo span:nth-child(2),.dot-logo span:nth-child(3){background:var(--border2)}
-.topbar-right{display:flex;align-items:center;gap:10px}
+.topbar-right{display:flex;align-items:center;gap:8px}
 button{font-family:'DM Sans',sans-serif;cursor:pointer;border:none;outline:none;transition:all .15s ease}
-.btn{font-size:12px;font-weight:500;padding:8px 16px;border-radius:var(--radius-sm);letter-spacing:.01em}
+.btn{font-size:12px;font-weight:500;padding:8px 14px;border-radius:var(--radius-sm);letter-spacing:.01em}
 .btn-solid{background:var(--text);color:white}
 .btn-solid:hover{background:#2a2a28}
 .btn-solid:disabled{background:var(--border2);color:var(--text3);cursor:not-allowed}
 .btn-outline{background:transparent;border:1px solid var(--border2);color:var(--text2)}
 .btn-outline:hover{border-color:var(--text);color:var(--text);background:var(--surface2)}
 .btn-outline.on{border-color:var(--text);color:var(--text);background:var(--surface)}
-.main{max-width:1200px;margin:0 auto;padding:40px 32px}
-.page-header{margin-bottom:40px}
+.main{max-width:1200px;margin:0 auto;padding:32px 24px}
+.page-header{margin-bottom:32px}
 .page-title{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.12em;color:var(--text3);text-transform:uppercase;margin-bottom:6px}
 .page-count{font-family:'DM Mono',monospace;font-size:40px;font-weight:300;letter-spacing:-.04em;line-height:1}
-.stats{display:flex;gap:1px;margin-bottom:40px;background:var(--border);border-radius:var(--radius);overflow:hidden;border:1px solid var(--border)}
-.stat{flex:1;background:var(--surface);padding:20px 20px 18px}
+.stats{display:flex;gap:1px;margin-bottom:32px;background:var(--border);border-radius:var(--radius);overflow:hidden;border:1px solid var(--border)}
+.stat{flex:1;background:var(--surface);padding:16px 16px 14px}
 .stat:first-child{border-radius:var(--radius) 0 0 var(--radius)}
 .stat:last-child{border-radius:0 var(--radius) var(--radius) 0}
-.stat-n{font-family:'DM Mono',monospace;font-size:24px;letter-spacing:-.03em;margin-bottom:4px}
-.stat-l{font-size:11px;color:var(--text3);letter-spacing:.04em;text-transform:uppercase}
-.toolbar{display:flex;align-items:center;gap:6px;margin-bottom:24px;flex-wrap:wrap}
-.toolbar-sep{width:1px;height:20px;background:var(--border2);margin:0 4px}
-.search{font-family:'DM Mono',monospace;font-size:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 14px;color:var(--text);width:200px;margin-left:auto;transition:border-color .15s}
+.stat-n{font-family:'DM Mono',monospace;font-size:22px;letter-spacing:-.03em;margin-bottom:4px}
+.stat-l{font-size:10px;color:var(--text3);letter-spacing:.04em;text-transform:uppercase}
+.toolbar{display:flex;align-items:center;gap:6px;margin-bottom:20px;flex-wrap:wrap}
+.toolbar-sep{width:1px;height:20px;background:var(--border2);margin:0 2px}
+.search{font-family:'DM Mono',monospace;font-size:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--text);width:180px;margin-left:auto;transition:border-color .15s}
 .search:focus{outline:none;border-color:var(--text)}
 .search::placeholder{color:var(--text3)}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;cursor:pointer;transition:box-shadow .2s,border-color .2s,transform .15s;animation:rise .3s ease both}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;cursor:pointer;transition:box-shadow .2s,border-color .2s,transform .15s;animation:rise .3s ease both}
 @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .card:hover{box-shadow:0 4px 24px rgba(0,0,0,.07);border-color:var(--border2);transform:translateY(-1px)}
 .card.stato-archiviato{opacity:.5}
-.card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
-.card-source{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);display:flex;align-items:center;gap:6px}
-.sdot{width:6px;height:6px;border-radius:50%;flex-shrink:0;background:var(--text3)}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.card-source{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);display:flex;align-items:center;gap:5px}
+.card-box{font-family:'DM Mono',monospace;font-size:9px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 6px;color:var(--text3)}
 .card-age{font-family:'DM Mono',monospace;font-size:10px;color:var(--text3)}
-.card-title{font-size:14px;font-weight:500;line-height:1.45;margin-bottom:8px;letter-spacing:-.01em}
-.card-desc{font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:16px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card-title{font-size:13px;font-weight:500;line-height:1.45;margin-bottom:6px;letter-spacing:-.01em}
+.card-desc{font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:14px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .card-bottom{display:flex;align-items:center;justify-content:space-between}
-.card-budget{font-family:'DM Mono',monospace;font-size:13px;font-weight:500}
-.card-budget.empty{color:var(--text3);font-size:11px;font-weight:400}
-.pill{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:4px 9px;border-radius:20px;border:1px solid currentColor;cursor:pointer;transition:all .12s;display:flex;align-items:center;gap:5px}
-.pill-dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+.pill{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:4px 8px;border-radius:20px;border:1px solid currentColor;cursor:pointer;display:flex;align-items:center;gap:4px}
+.pill-dot{width:4px;height:4px;border-radius:50%;background:currentColor}
 .pill.nuovo{color:var(--nuovo)}.pill.visto{color:var(--visto)}.pill.applicato{color:var(--applicato)}.pill.archiviato{color:var(--archiviato)}
-.empty{grid-column:1/-1;padding:80px 0;text-align:center}
-.empty-icon{font-family:'DM Mono',monospace;font-size:32px;color:var(--border2);margin-bottom:16px}
-.empty-title{font-size:14px;font-weight:500;color:var(--text2);margin-bottom:6px}
+.empty{grid-column:1/-1;padding:60px 0;text-align:center}
+.empty-icon{font-family:'DM Mono',monospace;font-size:28px;color:var(--border2);margin-bottom:12px}
+.empty-title{font-size:14px;font-weight:500;color:var(--text2);margin-bottom:4px}
 .empty-sub{font-size:12px;color:var(--text3)}
-.progress-wrap{margin-bottom:20px}
-.progress-label{font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);margin-bottom:8px;letter-spacing:.06em}
-.progress-track{height:1px;background:var(--border);border-radius:1px;overflow:hidden}
+.progress-wrap{margin-bottom:16px}
+.progress-label{font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);margin-bottom:6px;letter-spacing:.06em}
+.progress-track{height:1px;background:var(--border);overflow:hidden}
 .progress-fill{height:100%;background:var(--text);animation:prog 1.8s ease-in-out infinite}
 @keyframes prog{0%{width:0%}60%{width:75%}100%{width:100%}}
-.err{background:#fdf2f1;border:1px solid #f5c6c2;border-radius:var(--radius-sm);padding:12px 16px;font-family:'DM Mono',monospace;font-size:11px;color:var(--red);margin-bottom:20px}
-.server-status{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.06em;display:flex;align-items:center;gap:5px;color:var(--text3)}
+.err{background:#fdf2f1;border:1px solid #f5c6c2;border-radius:var(--radius-sm);padding:10px 14px;font-family:'DM Mono',monospace;font-size:11px;color:var(--red);margin-bottom:16px}
+.server-status{font-family:'DM Mono',monospace;font-size:10px;display:flex;align-items:center;gap:5px;color:var(--text3)}
 .server-dot{width:6px;height:6px;border-radius:50%;background:var(--border2)}
 .server-dot.online{background:#3d6b4f}
 .server-dot.offline{background:var(--red)}
-.overlay{position:fixed;inset:0;z-index:200;background:rgba(245,245,243,.75);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:24px;animation:fadeIn .18s ease}
+.overlay{position:fixed;inset:0;z-index:200;background:rgba(245,245,243,.8);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .18s ease}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;max-width:580px;width:100%;max-height:82vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.1);animation:slideUp .22s ease}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;max-width:560px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.1);animation:slideUp .22s ease}
 @keyframes slideUp{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
-.modal-eyebrow{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:10px}
-.modal-title{font-size:18px;font-weight:500;letter-spacing:-.02em;line-height:1.35;margin-bottom:24px}
-.modal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:24px}
-.mg-cell{background:var(--surface);padding:14px 16px}
+.modal-eyebrow{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:8px}
+.modal-title{font-size:17px;font-weight:500;letter-spacing:-.02em;line-height:1.35;margin-bottom:20px}
+.modal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:20px}
+.mg-cell{background:var(--surface);padding:12px 14px}
 .mg-key{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:4px}
-.mg-val{font-family:'DM Mono',monospace;font-size:13px}
-.modal-sl{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:10px}
-.modal-desc{font-size:13px;color:var(--text2);line-height:1.75;margin-bottom:24px;white-space:pre-wrap}
-.modal-raw{font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:24px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
-.modal-status{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px}
+.mg-val{font-family:'DM Mono',monospace;font-size:12px}
+.modal-sl{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:8px}
+.modal-desc{font-size:12px;color:var(--text2);line-height:1.75;margin-bottom:20px;white-space:pre-wrap}
+.modal-raw{font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:20px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
+.modal-status{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px}
 .modal-close-row{display:flex;justify-content:flex-end}
-.setup-modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;max-width:460px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.1);animation:slideUp .22s ease}
+.setup-modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;max-width:480px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.1);animation:slideUp .22s ease}
 .setup-title{font-size:16px;font-weight:500;margin-bottom:4px;letter-spacing:-.02em}
-.setup-sub{font-size:12px;color:var(--text3);margin-bottom:24px;line-height:1.6}
-.tabs{display:flex;gap:1px;background:var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:20px}
-.tab{flex:1;padding:8px;font-size:12px;font-weight:500;background:var(--surface2);color:var(--text3);text-align:center;cursor:pointer;border:none;transition:all .15s;font-family:'DM Sans',sans-serif}
+.setup-sub{font-size:12px;color:var(--text3);margin-bottom:20px;line-height:1.6}
+.tabs{display:flex;gap:1px;background:var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:18px}
+.tab{flex:1;padding:8px;font-size:12px;font-weight:500;background:var(--surface2);color:var(--text3);text-align:center;cursor:pointer;border:none;font-family:'DM Sans',sans-serif}
 .tab.active{background:var(--surface);color:var(--text)}
-.field{margin-bottom:14px}
-.field label{display:block;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);margin-bottom:6px}
-.field input{font-family:'DM Mono',monospace;font-size:12px;width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 12px;color:var(--text);outline:none;transition:border-color .15s}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);margin-bottom:5px}
+.field input{font-family:'DM Mono',monospace;font-size:12px;width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;color:var(--text);outline:none;transition:border-color .15s}
 .field input:focus{border-color:var(--text)}
 .field input::placeholder{color:var(--text3)}
-.setup-note{font-size:11px;color:var(--text3);margin-top:16px;line-height:1.6;background:var(--bg);border-radius:var(--radius-sm);padding:12px;border:1px solid var(--border)}
-.setup-actions{display:flex;gap:8px;margin-top:20px;justify-content:flex-end}
+.setup-actions{display:flex;gap:8px;margin-top:18px;justify-content:flex-end}
+.boxes-list{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.box-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer}
+.box-item:hover{border-color:var(--border2);background:var(--surface2)}
+.box-item.checked{background:var(--surface);border-color:var(--text)}
+.box-check{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.box-check.on{background:var(--text);border-color:var(--text)}
+.box-check.on::after{content:'';width:8px;height:5px;border-left:1.5px solid white;border-bottom:1.5px solid white;transform:rotate(-45deg) translateY(-1px);display:block}
+.box-name{font-family:'DM Mono',monospace;font-size:11px;color:var(--text);flex:1}
+.box-loading{font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);padding:16px;text-align:center}
+.setup-note{font-size:11px;color:var(--text3);line-height:1.6;background:var(--bg);border-radius:var(--radius-sm);padding:10px;border:1px solid var(--border)}
 `;
 
 const STATUSES = ["nuovo","visto","applicato","archiviato"];
 const STATUS_LABEL = { nuovo:"Nuovo", visto:"Visto", applicato:"Applicato", archiviato:"Arch." };
+const SKIP_BOXES = ["INBOX.Trash","INBOX.Spam","INBOX.Sent","INBOX.Drafts"];
 
 function age(d) {
   if (!d) return "";
-  const diff = Math.floor((Date.now()-new Date(d))/86400000);
+  var diff = Math.floor((Date.now()-new Date(d))/86400000);
   return diff===0?"oggi":diff===1?"ieri":diff+"g";
 }
-
 function fmtDate(d) {
   if (!d) return "-";
-  const dt = new Date(d);
+  var dt = new Date(d);
   if (isNaN(dt)) return d;
   return dt.toLocaleDateString("it-IT",{day:"2-digit",month:"short",year:"numeric"});
 }
-
-async function fetchRegisterJobs(cfg) {
-  const headers = {"Content-Type":"application/json"};
-  if (cfg.secret) headers["Authorization"] = "Bearer " + cfg.secret;
-  const res = await fetch(cfg.serverUrl + "/sync", {
-    method: "POST",
-    headers: headers,
-    body: JSON.stringify({
-      email: cfg.email,
-      password: cfg.password,
-      host: cfg.host,
-      port: cfg.port,
-      apiKey: cfg.apiKey
-    })
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(function(){ return {}; });
-    throw new Error(err.error || "Server " + res.status);
-  }
-  const data = await res.json();
-  if (!data.ok) throw new Error(data.error || "Errore server");
-  return data.jobs || [];
+function shortBox(b) {
+  return b.replace("INBOX.","").toLowerCase();
 }
 
 export default function WorkRadar() {
-  const [jobs, setJobs] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [loadMsg, setLoadMsg] = useState("");
-  const [error, setError] = useState(null);
-  const [filter, setFilter] = useState("tutti");
-  const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState(null);
-  const [showSetup, setShowSetup] = useState(false);
-  const [setupTab, setSetupTab] = useState("server");
-  const [serverOnline, setServerOnline] = useState(null);
-  const [cfg, setCfg] = useState({
-    serverUrl: "",
-    secret: "",
-    host: "webmail.register.it",
-    port: "993",
-    email: "",
-    password: "",
-    apiKey: ""
+  var [jobs, setJobs] = useState([]);
+  var [loading, setLoading] = useState(false);
+  var [loadMsg, setLoadMsg] = useState("");
+  var [error, setError] = useState(null);
+  var [filter, setFilter] = useState("tutti");
+  var [search, setSearch] = useState("");
+  var [selected, setSelected] = useState(null);
+  var [showSetup, setShowSetup] = useState(false);
+  var [setupTab, setSetupTab] = useState("server");
+  var [serverOnline, setServerOnline] = useState(null);
+  var [availableBoxes, setAvailableBoxes] = useState([]);
+  var [boxesLoading, setBoxesLoading] = useState(false);
+  var [selectedBoxes, setSelectedBoxes] = useState([]);
+  var [cfg, setCfg] = useState({
+    serverUrl: "", secret: "",
+    host: "pop.securemail.pro", port: "993",
+    email: "", password: ""
   });
-  const [cfgSaved, setCfgSaved] = useState(false);
+  var [cfgSaved, setCfgSaved] = useState(false);
 
   useEffect(function() {
     try {
-      const j = localStorage.getItem("wr_jobs5");
+      var j = localStorage.getItem("wr_jobs6");
       if (j) setJobs(JSON.parse(j));
-      const c = localStorage.getItem("wr_cfg2");
+      var c = localStorage.getItem("wr_cfg3");
       if (c) { setCfg(JSON.parse(c)); setCfgSaved(true); }
+      var b = localStorage.getItem("wr_boxes");
+      if (b) setSelectedBoxes(JSON.parse(b));
     } catch(e) {}
   }, []);
 
   useEffect(function() {
     if (!jobs.length) return;
-    try { localStorage.setItem("wr_jobs5", JSON.stringify(jobs)); } catch(e) {}
+    try { localStorage.setItem("wr_jobs6", JSON.stringify(jobs)); } catch(e) {}
   }, [jobs]);
 
-  const checkServer = useCallback(async function() {
+  var checkServer = useCallback(async function() {
     if (!cfg.serverUrl) { setServerOnline(null); return; }
     try {
-      const r = await fetch(cfg.serverUrl + "/health", { signal: AbortSignal.timeout(4000) });
+      var r = await fetch(cfg.serverUrl + "/health", { signal: AbortSignal.timeout(4000) });
       setServerOnline(r.ok);
     } catch(e) { setServerOnline(false); }
   }, [cfg.serverUrl]);
 
   useEffect(function() {
     checkServer();
-    const t = setInterval(checkServer, 10000);
+    var t = setInterval(checkServer, 10000);
     return function() { clearInterval(t); };
   }, [checkServer]);
 
   function setField(key, val) {
     setCfg(function(prev) {
-      const next = {};
+      var next = {};
       next.serverUrl = prev.serverUrl;
       next.secret = prev.secret;
       next.host = prev.host;
       next.port = prev.port;
       next.email = prev.email;
       next.password = prev.password;
-      next.apiKey = prev.apiKey;
       next[key] = val;
       return next;
     });
   }
 
   function saveCfg() {
-    try { localStorage.setItem("wr_cfg2", JSON.stringify(cfg)); } catch(e) {}
+    try { localStorage.setItem("wr_cfg3", JSON.stringify(cfg)); } catch(e) {}
+    try { localStorage.setItem("wr_boxes", JSON.stringify(selectedBoxes)); } catch(e) {}
     setCfgSaved(true);
     setShowSetup(false);
     setTimeout(checkServer, 500);
   }
 
+  async function loadBoxes() {
+    if (!cfg.email || !cfg.password || !cfg.serverUrl) return;
+    setBoxesLoading(true);
+    try {
+      var headers = {"Content-Type":"application/json"};
+      if (cfg.secret) headers["Authorization"] = "Bearer " + cfg.secret;
+      var res = await fetch(cfg.serverUrl + "/boxes", {
+        method: "POST", headers: headers,
+        body: JSON.stringify({ email: cfg.email, password: cfg.password, host: cfg.host, port: cfg.port })
+      });
+      var data = await res.json();
+      if (data.ok) {
+        var filtered = data.boxes.filter(function(b) { return SKIP_BOXES.indexOf(b) === -1; });
+        setAvailableBoxes(filtered);
+        if (selectedBoxes.length === 0) setSelectedBoxes(filtered);
+      }
+    } catch(e) {}
+    setBoxesLoading(false);
+  }
+
+  function toggleBox(box) {
+    setSelectedBoxes(function(prev) {
+      var idx = prev.indexOf(box);
+      if (idx === -1) return prev.concat([box]);
+      return prev.filter(function(b) { return b !== box; });
+    });
+  }
+
   function merge(incoming) {
     setJobs(function(prev) {
-      const ids = new Set(prev.map(function(j) { return j.id; }));
-      const fresh = incoming
-        .filter(function(j) { return !ids.has(j.id); })
-        .map(function(j) {
-          const nj = {};
-          nj.id = j.id; nj.titolo = j.titolo; nj.descrizione = j.descrizione;
-          nj.budget = j.budget; nj.scadenza = j.scadenza; nj.fonte = j.fonte;
-          nj.fonte_tipo = j.fonte_tipo; nj.data_ricezione = j.data_ricezione;
-          nj.email_originale = j.email_originale; nj.stato = "nuovo";
-          return nj;
-        });
+      var ids = new Set(prev.map(function(j) { return j.id; }));
+      var fresh = incoming.filter(function(j) { return !ids.has(j.id); });
       return fresh.concat(prev);
     });
   }
 
-  const sync = useCallback(async function() {
+  var sync = useCallback(async function() {
     if (!cfgSaved || !cfg.email || !cfg.serverUrl) {
-      setError("Configura prima il server e le credenziali IMAP.");
+      setError("Configura prima le credenziali.");
+      return;
+    }
+    if (selectedBoxes.length === 0) {
+      setError("Seleziona almeno una cartella da sincronizzare.");
       return;
     }
     setLoading(true); setError(null);
     try {
-      setLoadMsg("register.it: lettura email...");
-      const rj = await fetchRegisterJobs(cfg);
-      merge(rj);
-      setLoadMsg("Trovati " + rj.length + " lavori");
+      setLoadMsg("Lettura email in corso...");
+      var headers = {"Content-Type":"application/json"};
+      if (cfg.secret) headers["Authorization"] = "Bearer " + cfg.secret;
+      var res = await fetch(cfg.serverUrl + "/sync", {
+        method: "POST", headers: headers,
+        body: JSON.stringify({
+          email: cfg.email, password: cfg.password,
+          host: cfg.host, port: cfg.port,
+          boxes: selectedBoxes
+        })
+      });
+      if (!res.ok) throw new Error("Server " + res.status);
+      var data = await res.json();
+      if (!data.ok) throw new Error(data.error || "Errore server");
+      merge(data.jobs || []);
+      setLoadMsg("Importate " + (data.jobs || []).length + " email");
     } catch(e) {
       setError("Errore: " + e.message);
     }
     setLoadMsg(""); setLoading(false);
-  }, [cfg, cfgSaved]);
+  }, [cfg, cfgSaved, selectedBoxes]);
 
   function setStatus(id, stato, e) {
     if (e) e.stopPropagation();
     setJobs(function(p) {
       return p.map(function(j) {
         if (j.id !== id) return j;
-        const nj = {}; nj.id=j.id; nj.titolo=j.titolo; nj.descrizione=j.descrizione;
+        var nj = {}; nj.id=j.id; nj.titolo=j.titolo; nj.descrizione=j.descrizione;
         nj.budget=j.budget; nj.scadenza=j.scadenza; nj.fonte=j.fonte;
         nj.fonte_tipo=j.fonte_tipo; nj.data_ricezione=j.data_ricezione;
-        nj.email_originale=j.email_originale; nj.stato=stato;
+        nj.email_originale=j.email_originale; nj.box=j.box; nj.stato=stato;
         return nj;
       });
     });
     if (selected && selected.id === id) {
       setSelected(function(s) {
-        const ns = {}; ns.id=s.id; ns.titolo=s.titolo; ns.descrizione=s.descrizione;
+        var ns={}; ns.id=s.id; ns.titolo=s.titolo; ns.descrizione=s.descrizione;
         ns.budget=s.budget; ns.scadenza=s.scadenza; ns.fonte=s.fonte;
         ns.fonte_tipo=s.fonte_tipo; ns.data_ricezione=s.data_ricezione;
-        ns.email_originale=s.email_originale; ns.stato=stato;
+        ns.email_originale=s.email_originale; ns.box=s.box; ns.stato=stato;
         return ns;
       });
     }
   }
 
-  const filtered = jobs.filter(function(j) {
+  var filtered = jobs.filter(function(j) {
     if (filter !== "tutti" && j.stato !== filter) return false;
-    const q = search.toLowerCase();
-    return !q || [j.titolo, j.descrizione, j.fonte].some(function(s) {
-      return (s || "").toLowerCase().indexOf(q) !== -1;
+    var q = search.toLowerCase();
+    return !q || [j.titolo,j.descrizione,j.fonte,j.box].some(function(s) {
+      return (s||"").toLowerCase().indexOf(q) !== -1;
     });
   });
 
-  const stats = {
+  var stats = {
     totale: jobs.length,
-    nuovo: jobs.filter(function(j) { return j.stato === "nuovo"; }).length,
-    applicato: jobs.filter(function(j) { return j.stato === "applicato"; }).length,
-    budget: jobs.filter(function(j) { return j.budget && j.budget !== "null"; }).length
+    nuovo: jobs.filter(function(j){ return j.stato==="nuovo"; }).length,
+    applicato: jobs.filter(function(j){ return j.stato==="applicato"; }).length,
+    budget: jobs.filter(function(j){ return j.budget && j.budget!=="null"; }).length
   };
 
-  const serverClass = "server-dot" + (serverOnline === true ? " online" : serverOnline === false ? " offline" : "");
-  const serverLabel = serverOnline === true ? "server online" : serverOnline === false ? "server offline" : "...";
+  var serverClass = "server-dot" + (serverOnline===true?" online":serverOnline===false?" offline":"");
+  var serverLabel = serverOnline===true?"online":serverOnline===false?"offline":"...";
 
   return (
     <>
@@ -305,11 +328,11 @@ export default function WorkRadar() {
                 {serverLabel}
               </div>
             )}
-            <button className={"btn btn-outline" + (cfgSaved ? " on" : "")} onClick={function(){ setShowSetup(true); }}>
-              {cfgSaved ? "configurato" : "+ configura"}
+            <button className={"btn btn-outline"+(cfgSaved?" on":"")} onClick={function(){ setShowSetup(true); }}>
+              {cfgSaved?"configurato":"+ configura"}
             </button>
             <button className="btn btn-solid" onClick={sync} disabled={loading}>
-              {loading ? "..." : "Sincronizza"}
+              {loading?"...":"Sincronizza"}
             </button>
           </div>
         </div>
@@ -321,38 +344,23 @@ export default function WorkRadar() {
           </div>
 
           <div className="stats">
-            {[
-              {l:"Totali", n:stats.totale},
-              {l:"Nuovi", n:stats.nuovo},
-              {l:"Applicato", n:stats.applicato},
-              {l:"Con budget", n:stats.budget}
-            ].map(function(s) {
-              return (
-                <div className="stat" key={s.l}>
-                  <div className="stat-n">{s.n}</div>
-                  <div className="stat-l">{s.l}</div>
-                </div>
-              );
+            {[{l:"Totali",n:stats.totale},{l:"Nuovi",n:stats.nuovo},{l:"Applicato",n:stats.applicato},{l:"Con budget",n:stats.budget}].map(function(s){
+              return <div className="stat" key={s.l}><div className="stat-n">{s.n}</div><div className="stat-l">{s.l}</div></div>;
             })}
           </div>
 
-          {loading && (
-            <div className="progress-wrap">
-              <div className="progress-label">{loadMsg}</div>
-              <div className="progress-track"><div className="progress-fill"/></div>
-            </div>
-          )}
+          {loading && <div className="progress-wrap"><div className="progress-label">{loadMsg}</div><div className="progress-track"><div className="progress-fill"/></div></div>}
           {error && <div className="err">! {error}</div>}
 
           <div className="toolbar">
-            <button className={"btn btn-outline" + (filter === "tutti" ? " on" : "")} onClick={function(){ setFilter("tutti"); }}>Tutti</button>
+            <button className={"btn btn-outline"+(filter==="tutti"?" on":"")} onClick={function(){ setFilter("tutti"); }}>Tutti</button>
             <div className="toolbar-sep"/>
-            {STATUSES.map(function(s) {
-              const count = jobs.filter(function(j){ return j.stato===s; }).length;
+            {STATUSES.map(function(s){
+              var count = jobs.filter(function(j){ return j.stato===s; }).length;
               return (
-                <button key={s} className={"btn btn-outline" + (filter === s ? " on" : "")} onClick={function(){ setFilter(s); }}>
+                <button key={s} className={"btn btn-outline"+(filter===s?" on":"")} onClick={function(){ setFilter(s); }}>
                   {STATUS_LABEL[s]}
-                  <span style={{marginLeft:5,opacity:0.4,fontFamily:"DM Mono,monospace",fontSize:10}}>{count}</span>
+                  <span style={{marginLeft:4,opacity:.4,fontFamily:"DM Mono,monospace",fontSize:10}}>{count}</span>
                 </button>
               );
             })}
@@ -360,37 +368,35 @@ export default function WorkRadar() {
           </div>
 
           <div className="grid">
-            {jobs.length === 0 && !loading && (
+            {jobs.length===0&&!loading&&(
               <div className="empty">
                 <div className="empty-icon">. . .</div>
-                <div className="empty-title">Nessun lavoro</div>
-                <div className="empty-sub">Configura le credenziali e clicca Sincronizza</div>
+                <div className="empty-title">Nessuna email</div>
+                <div className="empty-sub">Configura e scegli le cartelle da sincronizzare</div>
               </div>
             )}
-            {jobs.length > 0 && filtered.length === 0 && (
+            {jobs.length>0&&filtered.length===0&&(
               <div className="empty">
                 <div className="empty-icon">0</div>
                 <div className="empty-title">Nessun risultato</div>
                 <div className="empty-sub">Cambia filtro o ricerca</div>
               </div>
             )}
-            {filtered.map(function(job, i) {
-              const hasBudget = job.budget && job.budget !== "null";
-              const nextStato = STATUSES[(STATUSES.indexOf(job.stato)+1) % STATUSES.length];
+            {filtered.map(function(job,i){
+              var nextStato = STATUSES[(STATUSES.indexOf(job.stato)+1)%STATUSES.length];
               return (
-                <div key={job.id} className={"card stato-" + job.stato} style={{animationDelay: i*30+"ms"}} onClick={function(){ setSelected(job); }}>
+                <div key={job.id} className={"card stato-"+job.stato} style={{animationDelay:i*20+"ms"}} onClick={function(){ setSelected(job); }}>
                   <div className="card-top">
-                    <div className="card-source"><span className="sdot"/>{job.fonte || "email"}</div>
+                    <div className="card-source">
+                      {job.box && <span className="card-box">{shortBox(job.box)}</span>}
+                      <span>{job.fonte||"email"}</span>
+                    </div>
                     <div className="card-age">{age(job.data_ricezione)}</div>
                   </div>
-                  <div className="card-title">{job.titolo || "Offerta"}</div>
-                  <div className="card-desc">{job.descrizione || "-"}</div>
+                  <div className="card-title">{job.titolo||"Email"}</div>
+                  <div className="card-desc">{job.descrizione||"-"}</div>
                   <div className="card-bottom">
-                    {hasBudget
-                      ? <div className="card-budget">{job.budget}</div>
-                      : <div className="card-budget empty">budget n.d.</div>
-                    }
-                    <span className={"pill " + job.stato} onClick={function(e){ setStatus(job.id, nextStato, e); }}>
+                    <span className={"pill "+job.stato} onClick={function(e){ setStatus(job.id,nextStato,e); }}>
                       <span className="pill-dot"/>
                       <span>{STATUS_LABEL[job.stato]}</span>
                     </span>
@@ -402,130 +408,105 @@ export default function WorkRadar() {
         </div>
       </div>
 
-      {selected && (
+      {selected&&(
         <div className="overlay" onClick={function(){ setSelected(null); }}>
           <div className="modal" onClick={function(e){ e.stopPropagation(); }}>
-            <div className="modal-eyebrow">{selected.fonte} - {fmtDate(selected.data_ricezione)}</div>
+            <div className="modal-eyebrow">{selected.box ? shortBox(selected.box)+" · " : ""}{selected.fonte} · {fmtDate(selected.data_ricezione)}</div>
             <div className="modal-title">{selected.titolo}</div>
             <div className="modal-grid">
-              <div className="mg-cell">
-                <div className="mg-key">Budget</div>
-                <div className="mg-val">{(selected.budget && selected.budget !== "null") ? selected.budget : "-"}</div>
-              </div>
-              <div className="mg-cell">
-                <div className="mg-key">Scadenza</div>
-                <div className="mg-val">{fmtDate(selected.scadenza)}</div>
-              </div>
-              <div className="mg-cell">
-                <div className="mg-key">Stato</div>
-                <div className="mg-val">{STATUS_LABEL[selected.stato]}</div>
-              </div>
+              <div className="mg-cell"><div className="mg-key">Cartella</div><div className="mg-val">{selected.box ? shortBox(selected.box) : "-"}</div></div>
+              <div className="mg-cell"><div className="mg-key">Data</div><div className="mg-val">{fmtDate(selected.data_ricezione)}</div></div>
+              <div className="mg-cell"><div className="mg-key">Stato</div><div className="mg-val">{STATUS_LABEL[selected.stato]}</div></div>
             </div>
-            <div className="modal-sl">Descrizione</div>
-            <div className="modal-desc">{selected.descrizione || "-"}</div>
-            {selected.email_originale && (
-              <>
-                <div className="modal-sl">Email originale</div>
-                <div className="modal-raw">{selected.email_originale}</div>
-              </>
-            )}
+            <div className="modal-sl">Testo email</div>
+            <div className="modal-desc">{selected.descrizione||"-"}</div>
             <div className="modal-sl">Cambia stato</div>
             <div className="modal-status">
-              {STATUSES.map(function(s) {
-                const isActive = selected.stato === s;
+              {STATUSES.map(function(s){
                 return (
-                  <span key={s} className={"pill " + s} style={isActive ? {background:"var(--border2)"} : {}} onClick={function(e){ setStatus(selected.id, s, e); }}>
-                    <span className="pill-dot"/>
-                    <span>{STATUS_LABEL[s]}</span>
+                  <span key={s} className={"pill "+s} style={selected.stato===s?{background:"var(--border2)"}:{}} onClick={function(e){ setStatus(selected.id,s,e); }}>
+                    <span className="pill-dot"/><span>{STATUS_LABEL[s]}</span>
                   </span>
                 );
               })}
             </div>
-            <div className="modal-close-row">
-              <button className="btn btn-outline" onClick={function(){ setSelected(null); }}>Chiudi</button>
-            </div>
+            <div className="modal-close-row"><button className="btn btn-outline" onClick={function(){ setSelected(null); }}>Chiudi</button></div>
           </div>
         </div>
       )}
 
-      {showSetup && (
+      {showSetup&&(
         <div className="overlay" onClick={function(){ setShowSetup(false); }}>
           <div className="setup-modal" onClick={function(e){ e.stopPropagation(); }}>
             <div className="setup-title">Configurazione</div>
-            <div className="setup-sub">Connetti il server Railway e le credenziali email.</div>
+            <div className="setup-sub">Connetti il server e scegli le cartelle.</div>
             <div className="tabs">
-              <button className={"tab" + (setupTab === "server" ? " active" : "")} onClick={function(){ setSetupTab("server"); }}>Server</button>
-              <button className={"tab" + (setupTab === "imap" ? " active" : "")} onClick={function(){ setSetupTab("imap"); }}>Email IMAP</button>
+              <button className={"tab"+(setupTab==="server"?" active":"")} onClick={function(){ setSetupTab("server"); }}>Server</button>
+              <button className={"tab"+(setupTab==="imap"?" active":"")} onClick={function(){ setSetupTab("imap"); }}>Email</button>
+              <button className={"tab"+(setupTab==="boxes"?" active":"")} onClick={function(){ setSetupTab("boxes"); if(availableBoxes.length===0) loadBoxes(); }}>Cartelle</button>
             </div>
 
-            {setupTab === "server" && (
+            {setupTab==="server"&&(
               <>
                 <div className="field">
                   <label>URL Server Railway</label>
-                  <input
-                    value={cfg.serverUrl}
-                    onChange={function(e){ setField("serverUrl", e.target.value); }}
-                    placeholder="https://smartworking-production.up.railway.app"
-                  />
+                  <input value={cfg.serverUrl} onChange={function(e){ setField("serverUrl",e.target.value); }} placeholder="https://smartworking-production.up.railway.app"/>
                 </div>
                 <div className="field">
                   <label>Secret Token</label>
-                  <input
-                    type="password"
-                    value={cfg.secret}
-                    onChange={function(e){ setField("secret", e.target.value); }}
-                    placeholder="il tuo WORKRADAR_SECRET"
-                  />
+                  <input type="password" value={cfg.secret} onChange={function(e){ setField("secret",e.target.value); }} placeholder="WORKRADAR_SECRET"/>
                 </div>
               </>
             )}
 
-            {setupTab === "imap" && (
+            {setupTab==="imap"&&(
               <>
                 <div className="field">
                   <label>Server IMAP</label>
-                  <input
-                    value={cfg.host}
-                    onChange={function(e){ setField("host", e.target.value); }}
-                    placeholder="webmail.register.it"
-                  />
+                  <input value={cfg.host} onChange={function(e){ setField("host",e.target.value); }} placeholder="pop.securemail.pro"/>
                 </div>
                 <div className="field">
                   <label>Porta</label>
-                  <input
-                    value={cfg.port}
-                    onChange={function(e){ setField("port", e.target.value); }}
-                    placeholder="993"
-                  />
+                  <input value={cfg.port} onChange={function(e){ setField("port",e.target.value); }} placeholder="993"/>
                 </div>
                 <div className="field">
                   <label>Email</label>
-                  <input
-                    type="email"
-                    value={cfg.email}
-                    onChange={function(e){ setField("email", e.target.value); }}
-                    placeholder="tua@email.it"
-                  />
+                  <input type="email" value={cfg.email} onChange={function(e){ setField("email",e.target.value); }} placeholder="tua@email.it"/>
                 </div>
                 <div className="field">
                   <label>Password</label>
-                  <input
-                    type="password"
-                    value={cfg.password}
-                    onChange={function(e){ setField("password", e.target.value); }}
-                    placeholder="password email"
-                  />
+                  <input type="password" value={cfg.password} onChange={function(e){ setField("password",e.target.value); }} placeholder="password email"/>
                 </div>
-                <div className="field">
-                  <label>API Key Anthropic</label>
-                  <input
-                    type="password"
-                    value={cfg.apiKey}
-                    onChange={function(e){ setField("apiKey", e.target.value); }}
-                    placeholder="sk-ant-..."
-                  />
-                </div>
-                <div className="setup-note">API key su console.anthropic.com/settings/keys</div>
+              </>
+            )}
+
+            {setupTab==="boxes"&&(
+              <>
+                {boxesLoading&&<div className="box-loading">Caricamento cartelle...</div>}
+                {!boxesLoading&&availableBoxes.length===0&&(
+                  <div className="box-loading">
+                    <div style={{marginBottom:8}}>Inserisci prima le credenziali email.</div>
+                    <button className="btn btn-outline" onClick={loadBoxes}>Carica cartelle</button>
+                  </div>
+                )}
+                {!boxesLoading&&availableBoxes.length>0&&(
+                  <>
+                    <div className="boxes-list">
+                      {availableBoxes.map(function(box){
+                        var isOn = selectedBoxes.indexOf(box)!==-1;
+                        return (
+                          <div key={box} className={"box-item"+(isOn?" checked":"")} onClick={function(){ toggleBox(box); }}>
+                            <div className={"box-check"+(isOn?" on":"")}/>
+                            <span className="box-name">{box}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="setup-note">
+                      {selectedBoxes.length} di {availableBoxes.length} cartelle selezionate
+                    </div>
+                  </>
+                )}
               </>
             )}
 
