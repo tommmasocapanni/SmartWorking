@@ -48,11 +48,11 @@ button{font-family:'DM Sans',sans-serif;cursor:pointer;border:none;outline:none;
 .autosync-dot.active{background:#4ade80;animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .stats{display:flex;gap:1px;margin-bottom:28px;background:var(--border2);border-radius:var(--radius);overflow:hidden;border:1px solid var(--border2)}
-.stat{flex:1;background:var(--surface);padding:14px 14px 12px;transition:background .3s}
+.stat{flex:1;background:var(--surface);padding:14px 14px 12px;transition:background .3s,color .3s}
 .stat:first-child{border-radius:var(--radius) 0 0 var(--radius)}
 .stat:last-child{border-radius:0 var(--radius) var(--radius) 0}
-.stat-n{font-family:'DM Mono',monospace;font-size:20px;letter-spacing:-.03em;margin-bottom:3px}
-.stat-l{font-size:10px;color:var(--text3);letter-spacing:.04em;text-transform:uppercase}
+.stat-n{font-family:'DM Mono',monospace;font-size:20px;letter-spacing:-.03em;margin-bottom:3px;color:var(--text)}
+.stat-l{font-size:10px;color:var(--text3);letter-spacing:.04em;text-transform:uppercase;margin-top:2px}
 .toolbar{display:flex;align-items:center;gap:5px;margin-bottom:16px;flex-wrap:wrap}
 .toolbar-sep{width:1px;height:18px;background:var(--border2);margin:0 2px;flex-shrink:0}
 .filter-tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px}
