@@ -5,7 +5,7 @@ Dashboard personale per lavori freelance. Legge Gmail e register.it via IMAP.
 ## Struttura repo
 
 ```
-workradar/
+workradar/ 
 ├── webapp/          ← React app (deploy su GitHub Pages)
 ├── server/          ← Node.js proxy IMAP (deploy su Railway)
 └── .github/
