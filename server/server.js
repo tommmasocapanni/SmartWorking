@@ -13,6 +13,22 @@ function cors(res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 }
 
+function cleanText(text) {
+  if (!text) return "";
+  return text
+    .replace(/https?:\/\/[^\s]+/g, "")
+    .replace(/\[image:[^\]]*\]/gi, "")
+    .replace(/\[cid:[^\]]*\]/gi, "")
+    .replace(/<[^>]+>/g, "")
+    .replace(/={2,}/g, "")
+    .replace(/\*{2,}/g, "")
+    .replace(/_{2,}/g, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim()
+    .slice(0, 600);
+}
+
 function getBoxes(imap) {
   return new Promise(function(resolve, reject) {
     imap.getBoxes(function(err, boxes) {
@@ -45,16 +61,18 @@ function fetchFromBox(imap, boxName) {
           simpleParser(stream, function(err, parsed) {
             if (err) return;
             var mid = parsed.messageId || String(Date.now() + Math.random());
+            var rawText = parsed.text || "";
+            var cleanedText = cleanText(rawText);
             emails.push({
               id: "reg_" + Buffer.from(mid).toString("base64").slice(0, 16),
               titolo: parsed.subject || "(nessun oggetto)",
-              descrizione: (parsed.text || "").slice(0, 500),
+              descrizione: cleanedText,
               budget: null,
               scadenza: null,
               fonte: parsed.from ? parsed.from.text : "sconosciuto",
               fonte_tipo: "register",
               data_ricezione: parsed.date ? parsed.date.toISOString() : new Date().toISOString(),
-              email_originale: (parsed.text || "").slice(0, 200),
+              email_originale: cleanedText.slice(0, 300),
               box: boxName
             });
           });
@@ -91,11 +109,10 @@ var server = http.createServer(async function(req, res) {
 
   if (pathname === "/health") {
     res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ ok: true, version: "2.0.0" }));
+    res.end(JSON.stringify({ ok: true, version: "2.1.0" }));
     return;
   }
 
-  // Get list of folders
   if (pathname === "/boxes" && req.method === "POST") {
     if (SECRET) {
       var auth = req.headers["authorization"] || "";
@@ -122,7 +139,6 @@ var server = http.createServer(async function(req, res) {
     return;
   }
 
-  // Sync selected folders
   if (pathname === "/sync" && req.method === "POST") {
     if (SECRET) {
       var auth2 = req.headers["authorization"] || "";
@@ -142,7 +158,6 @@ var server = http.createServer(async function(req, res) {
         }
         var selectedBoxes = parsed2.boxes || ["INBOX"];
         console.log("[" + new Date().toISOString() + "] sync -> " + parsed2.email);
-        console.log("  Cartelle selezionate: " + selectedBoxes.join(", "));
         var imap2 = await connectImap(parsed2);
         var allEmails = [];
         for (var i = 0; i < selectedBoxes.length; i++) {
@@ -151,7 +166,7 @@ var server = http.createServer(async function(req, res) {
           allEmails = allEmails.concat(boxEmails);
         }
         imap2.end();
-        console.log("  Totale: " + allEmails.length + " email");
+        console.log("  Totale: " + allEmails.length);
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ ok: true, total: allEmails.length, jobs: allEmails }));
       } catch(e) {
@@ -167,6 +182,6 @@ var server = http.createServer(async function(req, res) {
 });
 
 server.listen(PORT, function() {
-  console.log("WorkRadar Server v2.0 - Porta: " + PORT);
+  console.log("WorkRadar Server v2.1 - Porta: " + PORT);
   console.log("Auth: " + (SECRET ? "attiva" : "nessuna"));
 });
