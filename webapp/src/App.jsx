@@ -373,15 +373,16 @@ export default function WorkRadar() {
             </div>
 
             {setupTab === "server" && <>
-              <div className="field">
-                <label>URL Server Railway</label>
-                <input value={cfg.serverUrl} onChange={function(e){ var v=e.target.value; if(v.endsWith("/"))v=v.slice(0,-1); setCfg(function(p){ return Object.assign({},p,{serverUrl:v}); })} placeholder="https://smartworking-production.up.railway.app"/>
-              </div>
-              <div className="field">
-                <label>Secret Token</label>
-                <input type="password" value={cfg.secret} onChange={function(e){ setCfg(function(p){ return Object.assign({},p,{secret:e.target.value}); })} placeholder="il tuo WORKRADAR_SECRET"/>
-              </div>
-            </>}
+  <div className="field">
+    <label>URL Server Railway</label>
+    <input value={cfg.serverUrl} onChange={function(e){ setCfg(function(p){ return Object.assign({},p,{serverUrl:e.target.value}); })} placeholder="https://smartworking-production.up.railway.app"/>
+  </div>
+  <div className="field">
+    <label>Secret Token</label>
+    <input type="password" value={cfg.secret} onChange={function(e){ setCfg(function(p){ return Object.assign({},p,{secret:e.target.value}); })} placeholder="il tuo WORKRADAR_SECRET"/>
+  </div>
+</>}
+
 
             {setupTab === "imap" && <>
               <div className="field">
