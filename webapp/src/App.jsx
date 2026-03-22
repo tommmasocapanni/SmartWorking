@@ -347,14 +347,14 @@ export default function WorkRadar() {
   var undoTimerRef=useRef(null);
 
   useEffect(function(){
-    var j=load("wr_j10");if(j)setJobs(j);
-    var c=load("wr_c10");if(c){setCfg(c);setCfgSaved(true);}
-    var b=load("wr_b10");if(b)setSelectedBoxes(b);
-    var as=load("wr_as");if(as)setAutoSync(as);
-    var ls=load("wr_ls");if(ls)setLastSync(ls);
+    var j=load("wr_v1_jobs");if(j)setJobs(j);
+    var c=load("wr_v1_cfg");if(c){setCfg(c);setCfgSaved(true);}
+    var b=load("wr_v1_boxes");if(b)setSelectedBoxes(b);
+    var as=load("wr_v1_autosync");if(as)setAutoSync(as);
+    var ls=load("wr_v1_lastsync");if(ls)setLastSync(ls);
   },[]);
 
-  useEffect(function(){if(jobs.length)save("wr_j10",jobs);},[jobs]);
+  useEffect(function(){if(jobs.length)save("wr_v1_jobs",jobs);},[jobs]);
 
   useEffect(function(){
     var mq=window.matchMedia('(prefers-color-scheme: dark)');
@@ -381,14 +381,26 @@ export default function WorkRadar() {
   function toggleBox(box){
     setSelectedBoxes(function(prev){
       var idx=prev.indexOf(box);
-      if(idx!==-1){setJobs(function(js){var next=js.filter(function(j){return j.box!==box;});save("wr_j10",next);return next;});}
-      return idx===-1?prev.concat([box]):prev.filter(function(b){return b!==box;});
+      if(idx!==-1){
+        // Removing box: delete its emails
+        setJobs(function(js){
+          var next=js.filter(function(j){return j.box!==box;});
+          save("wr_v1_jobs",next);return next;
+        });
+      }
+      var next=idx===-1?prev.concat([box]):prev.filter(function(b){return b!==box;});
+      save("wr_v1_boxes",next);
+      return next;
     });
   }
 
   function saveCfg(){
-    save("wr_c10",cfg);save("wr_b10",selectedBoxes);save("wr_as",autoSync);
-    setCfgSaved(true);setShowSetup(false);setTimeout(checkServer,500);
+    save("wr_v1_cfg",cfg);
+    save("wr_v1_boxes",selectedBoxes);
+    save("wr_v1_autosync",autoSync);
+    setCfgSaved(true);
+    setShowSetup(false);
+    setTimeout(checkServer,500);
   }
 
   async function loadBoxes(){
@@ -405,9 +417,19 @@ export default function WorkRadar() {
 
   function merge(incoming){
     setJobs(function(prev){
+      // Dedup by id AND by titolo+box combo to avoid duplicates across syncs
       var ids=new Set(prev.map(function(j){return j.id;}));
-      var fresh=incoming.filter(function(j){return !ids.has(j.id);});
-      var next=fresh.concat(prev);save("wr_j10",next);return next;
+      var keys=new Set(prev.map(function(j){return (j.titolo||"")+"||"+(j.box||"")+"||"+(j.data_ricezione||"");}));
+      var fresh=incoming.filter(function(j){
+        if(ids.has(j.id)) return false;
+        var k=(j.titolo||"")+"||"+(j.box||"")+"||"+(j.data_ricezione||"");
+        if(keys.has(k)) return false;
+        return true;
+      });
+      // Preserve user edits (note, tags, stato, budget, deadline, pinned) on existing jobs
+      var next=fresh.map(function(j){return Object.assign({},j,{stato:"nuovo"});}).concat(prev);
+      save("wr_v1_jobs",next);
+      return next;
     });
   }
 
@@ -421,7 +443,7 @@ export default function WorkRadar() {
       if(!res.ok)throw new Error("Server "+res.status);
       var data=await res.json();if(!data.ok)throw new Error(data.error||"Errore");
       merge(data.jobs||[]);
-      var now=new Date().toISOString();setLastSync(now);save("wr_ls",now);
+      var now=new Date().toISOString();setLastSync(now);save("wr_v1_lastsync",now);
       if(!silent)setLoadMsg("+"+(data.jobs||[]).length+" email");
     }catch(e){if(!silent)setError("Errore: "+e.message);}
     if(!silent){setLoadMsg("");setLoading(false);}
@@ -436,7 +458,7 @@ export default function WorkRadar() {
   },[autoSync]);
 
   function updateJob(id,patch){
-    setJobs(function(prev){var next=prev.map(function(j){return j.id===id?Object.assign({},j,patch):j;});save("wr_j10",next);return next;});
+    setJobs(function(prev){var next=prev.map(function(j){return j.id===id?Object.assign({},j,patch):j;});save("wr_v1_jobs",next);return next;});
     if(selected&&selected.id===id)setSelected(function(s){return Object.assign({},s,patch);});
   }
 
@@ -446,7 +468,7 @@ export default function WorkRadar() {
     setJobs(function(prev){
       snapshot=prev.filter(function(j){return j.id===threadId;});
       var next=prev.filter(function(j){return j.id!==threadId;});
-      save("wr_j10",next);return next;
+      save("wr_v1_jobs",next);return next;
     });
     if(selected&&selected.id===threadId)setSelected(null);
     if(undoTimerRef.current)clearTimeout(undoTimerRef.current);
@@ -460,7 +482,7 @@ export default function WorkRadar() {
     setJobs(function(prev){
       var ids=new Set(prev.map(function(j){return j.id;}));
       var restored=undoToast.snapshot.filter(function(j){return !ids.has(j.id);});
-      var next=restored.concat(prev);save("wr_j10",next);return next;
+      var next=restored.concat(prev);save("wr_v1_jobs",next);return next;
     });
     setUndoToast(null);
   }
@@ -579,7 +601,7 @@ export default function WorkRadar() {
             <div className="toolbar-sep"/>
             {STATUSES.map(function(s){
               var count=threads.filter(function(t){return t.stato===s;}).length;
-              return <button key={s} className={"btn btn-outline"+(filter===s?" on":"")} onClick={function(){setFilter(s);}}>{STATUS_LABEL[s]}<span style={{marginLeft:4,opacity:.4,fontFamily:"DM Mono,monospace",fontSize:10}}>{count}</span></button>;
+              return <button key={s} className={"btn btn-outline"+(filter===s?" on":"")} onClick={function(){ setFilter(function(prev){ return prev===s?"tutti":s; }); }}>{STATUS_LABEL[s]}<span style={{marginLeft:4,opacity:.4,fontFamily:"DM Mono,monospace",fontSize:10}}>{count}</span></button>;
             })}
             <div className="toolbar-sep"/>
             <button className={"btn btn-outline"+(sortDesc?" on":"")} onClick={function(){setSortDesc(function(v){return !v;});}}>{sortDesc?"↓ rec":"↑ vec"}</button>
@@ -749,6 +771,15 @@ export default function WorkRadar() {
             </>)}
 
             <div className="setup-actions">
+              <button className="btn btn-outline" style={{color:"var(--red)",borderColor:"rgba(192,57,43,.3)",fontSize:11}} onClick={function(){
+                if(!window.confirm("Cancella tutti i dati salvati?")) return;
+                ["wr_v1_jobs","wr_v1_cfg","wr_v1_boxes","wr_v1_autosync","wr_v1_lastsync",
+                 "wr_j10","wr_c10","wr_b10","wr_as","wr_ls","wr_jobs9","wr_cfg6","wr_boxes4",
+                 "wr_jobs8","wr_cfg5","wr_boxes3","wr_jobs7","wr_cfg4","wr_boxes2",
+                 "wr_jobs6","wr_cfg3","wr_jobs5","wr_cfg2"].forEach(function(k){localStorage.removeItem(k);});
+                window.location.reload();
+              }}>Reset</button>
+              <div style={{flex:1}}/>
               <button className="btn btn-outline" onClick={function(){setShowSetup(false);}}>Annulla</button>
               <button className="btn btn-solid" onClick={saveCfg}>Salva</button>
             </div>
