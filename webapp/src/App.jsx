@@ -144,6 +144,11 @@ button{font-family:'DM Sans',sans-serif;cursor:pointer;border:none;outline:none;
 .box-name{font-family:'DM Mono',monospace;font-size:11px;color:var(--text);flex:1}
 .box-loading{font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);padding:16px;text-align:center}
 .setup-note{font-size:11px;color:var(--text3);line-height:1.6;background:var(--bg);border-radius:var(--radius-sm);padding:10px;border:1px solid var(--border)}
+
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:var(--text);color:white;border-radius:var(--radius);padding:12px 18px;display:flex;align-items:center;gap:12px;font-size:13px;box-shadow:0 8px 32px rgba(0,0,0,.2);z-index:500;animation:toastIn .25s ease;white-space:nowrap}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.toast-undo{font-family:'DM Mono',monospace;font-size:11px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:4px 10px;cursor:pointer;color:white;transition:background .15s}
+.toast-undo:hover{background:rgba(255,255,255,.25)}
 `;
 
 const STATUSES = ["nuovo","visto","applicato","archiviato"];
@@ -219,6 +224,9 @@ export default function WorkRadar() {
   var [cfg, setCfg] = useState({ serverUrl:"", secret:"", host:"pop.securemail.pro", port:"993", email:"", password:"" });
   var [cfgSaved, setCfgSaved] = useState(false);
   var autoSyncRef = useRef(null);
+  var syncRef = useRef(null);
+  var undoTimerRef = useRef(null);
+  var [undoToast, setUndoToast] = useState(null);
   var syncRef = useRef(null);
 
   useEffect(function() {
@@ -325,8 +333,28 @@ export default function WorkRadar() {
 
   function deleteThread(threadId, e) {
     if(e) e.stopPropagation();
-    setJobs(function(prev) { var next=prev.filter(function(j){ return j.id!==threadId; }); save("wr_jobs9",next); return next; });
+    var deleted = null;
+    setJobs(function(prev) {
+      deleted = prev.filter(function(j){ return j.id===threadId; });
+      var next = prev.filter(function(j){ return j.id!==threadId; });
+      save("wr_jobs9",next); return next;
+    });
     if(selected&&selected.id===threadId) setSelected(null);
+    if(undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setUndoToast({ id: threadId, snapshot: deleted });
+    undoTimerRef.current = setTimeout(function(){ setUndoToast(null); }, 5000);
+  }
+
+  function undoDelete() {
+    if(!undoToast) return;
+    clearTimeout(undoTimerRef.current);
+    setJobs(function(prev) {
+      var ids = new Set(prev.map(function(j){ return j.id; }));
+      var restored = undoToast.snapshot.filter(function(j){ return !ids.has(j.id); });
+      var next = restored.concat(prev);
+      save("wr_jobs9",next); return next;
+    });
+    setUndoToast(null);
   }
 
   function openModal(thread) {
@@ -623,6 +651,13 @@ export default function WorkRadar() {
               <button className="btn btn-solid" onClick={saveCfg}>Salva</button>
             </div>
           </div>
+        </div>
+      )}
+
+      {undoToast&&(
+        <div className="toast">
+          <span>Email eliminata</span>
+          <button className="toast-undo" onClick={undoDelete}>Annulla</button>
         </div>
       )}
     </>
