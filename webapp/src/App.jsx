@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 const G = `
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
@@ -27,10 +27,15 @@ button{font-family:'DM Sans',sans-serif;cursor:pointer;border:none;outline:none;
 .btn-outline{background:transparent;border:1px solid var(--border2);color:var(--text2)}
 .btn-outline:hover{border-color:var(--text);color:var(--text);background:var(--surface2)}
 .btn-outline.on{border-color:var(--text);color:var(--text);background:var(--surface)}
+.btn-sm{padding:5px 10px;font-size:11px}
 .main{max-width:1200px;margin:0 auto;padding:32px 24px}
-.page-header{margin-bottom:32px}
+.page-header{margin-bottom:32px;display:flex;align-items:flex-end;justify-content:space-between}
 .page-title{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.12em;color:var(--text3);text-transform:uppercase;margin-bottom:6px}
 .page-count{font-family:'DM Mono',monospace;font-size:40px;font-weight:300;letter-spacing:-.04em;line-height:1}
+.autosync-info{font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);text-align:right}
+.autosync-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--text3);margin-right:5px;vertical-align:middle}
+.autosync-dot.active{background:#3d6b4f;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 .stats{display:flex;gap:1px;margin-bottom:32px;background:var(--border);border-radius:var(--radius);overflow:hidden;border:1px solid var(--border)}
 .stat{flex:1;background:var(--surface);padding:16px 16px 14px}
 .stat:first-child{border-radius:var(--radius) 0 0 var(--radius)}
@@ -39,7 +44,7 @@ button{font-family:'DM Sans',sans-serif;cursor:pointer;border:none;outline:none;
 .stat-l{font-size:10px;color:var(--text3);letter-spacing:.04em;text-transform:uppercase}
 .toolbar{display:flex;align-items:center;gap:6px;margin-bottom:20px;flex-wrap:wrap}
 .toolbar-sep{width:1px;height:20px;background:var(--border2);margin:0 2px}
-.search{font-family:'DM Mono',monospace;font-size:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--text);width:180px;margin-left:auto;transition:border-color .15s}
+.search{font-family:'DM Mono',monospace;font-size:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--text);width:160px;transition:border-color .15s}
 .search:focus{outline:none;border-color:var(--text)}
 .search::placeholder{color:var(--text3)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
@@ -51,16 +56,22 @@ button{font-family:'DM Sans',sans-serif;cursor:pointer;border:none;outline:none;
 .thread-stack2{position:absolute;bottom:-10px;left:16px;right:16px;height:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);z-index:-2}
 .thread-badge{display:inline-flex;align-items:center;gap:3px;font-family:'DM Mono',monospace;font-size:9px;background:var(--text);color:white;border-radius:20px;padding:2px 7px;letter-spacing:.04em;margin-bottom:10px}
 .card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-.card-source{font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;color:var(--text3);display:flex;align-items:center;gap:5px}
+.card-meta{display:flex;align-items:center;gap:5px;flex:1;min-width:0}
 .card-box{font-family:'DM Mono',monospace;font-size:9px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 6px;color:var(--text3)}
-.card-age{font-family:'DM Mono',monospace;font-size:10px;color:var(--text3)}
-.card-title{font-size:13px;font-weight:500;line-height:1.45;margin-bottom:5px;letter-spacing:-.01em}
-.card-from{font-size:11px;color:var(--text3);margin-bottom:8px;font-family:'DM Mono',monospace}
-.card-desc{font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:14px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.card-bottom{display:flex;align-items:center;justify-content:space-between}
+.card-age{font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);white-space:nowrap}
+.card-title{font-size:13px;font-weight:500;line-height:1.45;margin-bottom:4px;letter-spacing:-.01em}
+.card-from{font-size:11px;color:var(--text3);margin-bottom:8px;font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-desc{font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:12px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
+.tag{font-family:'DM Mono',monospace;font-size:9px;padding:2px 7px;border-radius:20px;border:1px solid;letter-spacing:.04em;cursor:default}
+.card-note-preview{font-size:10px;color:var(--text3);font-style:italic;margin-bottom:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-bottom{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.card-budget-badge{font-family:'DM Mono',monospace;font-size:11px;color:var(--applicato);font-weight:500}
 .pill{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:4px 8px;border-radius:20px;border:1px solid currentColor;cursor:pointer;display:flex;align-items:center;gap:4px}
 .pill-dot{width:4px;height:4px;border-radius:50%;background:currentColor}
 .pill.nuovo{color:var(--nuovo)}.pill.visto{color:var(--visto)}.pill.applicato{color:var(--applicato)}.pill.archiviato{color:var(--archiviato)}
+.card-delete{position:absolute;top:12px;right:12px;width:22px;height:22px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);color:var(--text3);font-size:10px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;cursor:pointer}
+.card:hover .card-delete{opacity:1}
 .empty{grid-column:1/-1;padding:60px 0;text-align:center}
 .empty-icon{font-family:'DM Mono',monospace;font-size:28px;color:var(--border2);margin-bottom:12px}
 .empty-title{font-size:14px;font-weight:500;color:var(--text2);margin-bottom:4px}
@@ -79,22 +90,38 @@ button{font-family:'DM Sans',sans-serif;cursor:pointer;border:none;outline:none;
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;max-width:580px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.1);animation:slideUp .22s ease}
 @keyframes slideUp{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
-.modal-eyebrow{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:8px}
-.modal-title{font-size:17px;font-weight:500;letter-spacing:-.02em;line-height:1.35;margin-bottom:20px}
-.modal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:20px}
-.mg-cell{background:var(--surface);padding:12px 14px}
-.mg-key{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:4px}
-.mg-val{font-family:'DM Mono',monospace;font-size:11px;word-break:break-word}
-.modal-sl{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:10px}
-.thread-list{display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:20px}
-.thread-email{background:var(--surface);padding:0;cursor:pointer;transition:background .15s}
+.modal-eyebrow{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:6px}
+.modal-title{font-size:17px;font-weight:500;letter-spacing:-.02em;line-height:1.35;margin-bottom:16px}
+.modal-meta-row{display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap}
+.modal-meta-item{display:flex;flex-direction:column;gap:2px}
+.modal-meta-key{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--text3)}
+.modal-meta-val{font-family:'DM Mono',monospace;font-size:11px;color:var(--text2)}
+.modal-sl{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:8px;margin-top:16px}
+.modal-desc{font-size:12px;color:var(--text2);line-height:1.75;white-space:pre-wrap}
+.thread-list{display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
+.thread-email{background:var(--surface);cursor:pointer;transition:background .15s}
 .thread-email:hover{background:var(--surface2)}
-.thread-email-header{display:flex;justify-content:space-between;align-items:center;padding:12px 14px}
+.thread-email-header{display:flex;justify-content:space-between;align-items:center;padding:10px 14px}
 .thread-email-from{font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);font-weight:500}
 .thread-email-date{font-family:'DM Mono',monospace;font-size:10px;color:var(--text3)}
-.thread-email-body{padding:0 14px 14px;font-size:12px;color:var(--text2);line-height:1.7;white-space:pre-wrap;border-top:1px solid var(--border);padding-top:12px}
-.modal-status{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px}
-.modal-close-row{display:flex;justify-content:flex-end}
+.thread-email-body{padding:12px 14px;font-size:12px;color:var(--text2);line-height:1.7;white-space:pre-wrap;border-top:1px solid var(--border)}
+.modal-note-area{width:100%;font-family:'DM Sans',sans-serif;font-size:12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;color:var(--text);outline:none;resize:vertical;min-height:70px;transition:border-color .15s;line-height:1.6}
+.modal-note-area:focus{border-color:var(--text)}
+.modal-note-area::placeholder{color:var(--text3)}
+.modal-budget-row{display:flex;gap:8px;align-items:center}
+.modal-budget-input{font-family:'DM Mono',monospace;font-size:12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;color:var(--text);outline:none;flex:1;transition:border-color .15s}
+.modal-budget-input:focus{border-color:var(--text)}
+.modal-budget-input::placeholder{color:var(--text3)}
+.tags-area{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.tag-input-row{display:flex;gap:6px}
+.tag-input{font-family:'DM Mono',monospace;font-size:11px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;color:var(--text);outline:none;flex:1;transition:border-color .15s}
+.tag-input:focus{border-color:var(--text)}
+.tag-input::placeholder{color:var(--text3)}
+.tag-pill{font-family:'DM Mono',monospace;font-size:10px;padding:3px 8px;border-radius:20px;display:flex;align-items:center;gap:5px;cursor:default}
+.tag-pill-x{cursor:pointer;opacity:.6;font-size:11px}
+.tag-pill-x:hover{opacity:1}
+.modal-status{display:flex;gap:6px;flex-wrap:wrap}
+.modal-actions{display:flex;justify-content:space-between;align-items:center;margin-top:20px}
 .setup-modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;max-width:480px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.1);animation:slideUp .22s ease}
 .setup-title{font-size:16px;font-weight:500;margin-bottom:4px;letter-spacing:-.02em}
 .setup-sub{font-size:12px;color:var(--text3);margin-bottom:20px;line-height:1.6}
@@ -103,8 +130,8 @@ button{font-family:'DM Sans',sans-serif;cursor:pointer;border:none;outline:none;
 .tab.active{background:var(--surface);color:var(--text)}
 .field{margin-bottom:12px}
 .field label{display:block;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);margin-bottom:5px}
-.field input{font-family:'DM Mono',monospace;font-size:12px;width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;color:var(--text);outline:none;transition:border-color .15s}
-.field input:focus{border-color:var(--text)}
+.field input, .field select{font-family:'DM Mono',monospace;font-size:12px;width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;color:var(--text);outline:none;transition:border-color .15s}
+.field input:focus, .field select:focus{border-color:var(--text)}
 .field input::placeholder{color:var(--text3)}
 .setup-actions{display:flex;gap:8px;margin-top:18px;justify-content:flex-end}
 .boxes-list{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
@@ -122,7 +149,20 @@ button{font-family:'DM Sans',sans-serif;cursor:pointer;border:none;outline:none;
 const STATUSES = ["nuovo","visto","applicato","archiviato"];
 const STATUS_LABEL = { nuovo:"Nuovo", visto:"Visto", applicato:"Applicato", archiviato:"Arch." };
 const SKIP_BOXES = ["INBOX.Trash","INBOX.Spam","INBOX.Sent","INBOX.Drafts"];
+const TAG_COLORS = [
+  {bg:"rgba(59,130,246,.12)",border:"rgba(59,130,246,.3)",text:"#3b82f6"},
+  {bg:"rgba(16,185,129,.12)",border:"rgba(16,185,129,.3)",text:"#10b981"},
+  {bg:"rgba(245,158,11,.12)",border:"rgba(245,158,11,.3)",text:"#f59e0b"},
+  {bg:"rgba(239,68,68,.12)",border:"rgba(239,68,68,.3)",text:"#ef4444"},
+  {bg:"rgba(139,92,246,.12)",border:"rgba(139,92,246,.3)",text:"#8b5cf6"},
+  {bg:"rgba(236,72,153,.12)",border:"rgba(236,72,153,.3)",text:"#ec4899"},
+];
 
+function tagColor(tag) {
+  var i = 0;
+  for (var c = 0; c < tag.length; c++) i += tag.charCodeAt(c);
+  return TAG_COLORS[i % TAG_COLORS.length];
+}
 function age(d) {
   if (!d) return "";
   var diff = Math.floor((Date.now()-new Date(d))/86400000);
@@ -130,43 +170,29 @@ function age(d) {
 }
 function fmtDate(d) {
   if (!d) return "-";
-  var dt = new Date(d);
-  if (isNaN(dt)) return d;
+  var dt = new Date(d); if (isNaN(dt)) return d;
   return dt.toLocaleDateString("it-IT",{day:"2-digit",month:"short",year:"numeric"});
 }
-function shortBox(b) {
-  if (!b) return "";
-  return b.replace("INBOX.","").toLowerCase();
-}
+function shortBox(b) { return b?(b.replace("INBOX.","").toLowerCase()):""; }
 function threadKey(titolo, box) {
   var clean = (titolo||"").replace(/^(re|fwd|fw|r|i):\s*/gi,"").trim().toLowerCase();
-  return clean + "|" + (box||"");
+  return clean+"|"+(box||"");
 }
-
 function groupThreads(jobs) {
-  var groups = {};
-  var order = [];
+  var groups = {}, order = [];
   jobs.forEach(function(job) {
     var key = threadKey(job.titolo, job.box);
-    if (!groups[key]) { groups[key] = []; order.push(key); }
+    if (!groups[key]) { groups[key]=[]; order.push(key); }
     groups[key].push(job);
   });
   return order.map(function(key) {
-    var emails = groups[key];
-    var latest = emails[0];
-    return {
-      id: latest.id,
-      titolo: latest.titolo,
-      descrizione: latest.descrizione,
-      fonte: latest.fonte,
-      box: latest.box,
-      data_ricezione: latest.data_ricezione,
-      stato: latest.stato,
-      count: emails.length,
-      emails: emails
-    };
+    var emails = groups[key], latest = emails[0];
+    return { id:latest.id, titolo:latest.titolo, descrizione:latest.descrizione, fonte:latest.fonte, box:latest.box, data_ricezione:latest.data_ricezione, stato:latest.stato, note:latest.note||"", budget:latest.budget||"", tags:latest.tags||[], count:emails.length, emails:emails };
   });
 }
+
+function save(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {} }
+function load(key) { try { var v=localStorage.getItem(key); return v?JSON.parse(v):null; } catch(e) { return null; } }
 
 export default function WorkRadar() {
   var [jobs, setJobs] = useState([]);
@@ -177,155 +203,172 @@ export default function WorkRadar() {
   var [search, setSearch] = useState("");
   var [selected, setSelected] = useState(null);
   var [expandedEmail, setExpandedEmail] = useState(null);
-  var [sortDesc, setSortDesc] = useState(true);
+  var [editNote, setEditNote] = useState("");
+  var [editBudget, setEditBudget] = useState("");
+  var [editTags, setEditTags] = useState([]);
+  var [tagInput, setTagInput] = useState("");
   var [showSetup, setShowSetup] = useState(false);
   var [setupTab, setSetupTab] = useState("server");
   var [serverOnline, setServerOnline] = useState(null);
   var [availableBoxes, setAvailableBoxes] = useState([]);
   var [boxesLoading, setBoxesLoading] = useState(false);
   var [selectedBoxes, setSelectedBoxes] = useState([]);
-  var [cfg, setCfg] = useState({
-    serverUrl:"", secret:"",
-    host:"pop.securemail.pro", port:"993",
-    email:"", password:""
-  });
+  var [sortDesc, setSortDesc] = useState(true);
+  var [autoSync, setAutoSync] = useState(0);
+  var [lastSync, setLastSync] = useState(null);
+  var [cfg, setCfg] = useState({ serverUrl:"", secret:"", host:"pop.securemail.pro", port:"993", email:"", password:"" });
   var [cfgSaved, setCfgSaved] = useState(false);
+  var autoSyncRef = useRef(null);
+  var syncRef = useRef(null);
 
   useEffect(function() {
-    try {
-      var j = localStorage.getItem("wr_jobs8"); if(j) setJobs(JSON.parse(j));
-      var c = localStorage.getItem("wr_cfg5"); if(c){ setCfg(JSON.parse(c)); setCfgSaved(true); }
-      var b = localStorage.getItem("wr_boxes3"); if(b) setSelectedBoxes(JSON.parse(b));
-    } catch(e) {}
+    var j=load("wr_jobs9"); if(j) setJobs(j);
+    var c=load("wr_cfg6"); if(c){ setCfg(c); setCfgSaved(true); }
+    var b=load("wr_boxes4"); if(b) setSelectedBoxes(b);
+    var as=load("wr_autosync"); if(as) setAutoSync(as);
+    var ls=load("wr_lastsync"); if(ls) setLastSync(ls);
   }, []);
 
-  useEffect(function() {
-    if (!jobs.length) return;
-    try { localStorage.setItem("wr_jobs8", JSON.stringify(jobs)); } catch(e) {}
-  }, [jobs]);
+  useEffect(function() { if(jobs.length) save("wr_jobs9",jobs); }, [jobs]);
 
   var checkServer = useCallback(async function() {
     if (!cfg.serverUrl) { setServerOnline(null); return; }
-    try {
-      var r = await fetch(cfg.serverUrl+"/health",{signal:AbortSignal.timeout(4000)});
-      setServerOnline(r.ok);
-    } catch(e) { setServerOnline(false); }
+    try { var r=await fetch(cfg.serverUrl+"/health",{signal:AbortSignal.timeout(4000)}); setServerOnline(r.ok); }
+    catch(e) { setServerOnline(false); }
   }, [cfg.serverUrl]);
 
   useEffect(function() {
     checkServer();
-    var t = setInterval(checkServer,10000);
+    var t=setInterval(checkServer,10000);
     return function(){ clearInterval(t); };
   }, [checkServer]);
 
   function setField(key, val) {
     setCfg(function(prev) {
-      var next = {};
-      next.serverUrl=prev.serverUrl; next.secret=prev.secret;
-      next.host=prev.host; next.port=prev.port;
-      next.email=prev.email; next.password=prev.password;
+      var next={serverUrl:prev.serverUrl,secret:prev.secret,host:prev.host,port:prev.port,email:prev.email,password:prev.password};
       next[key]=val; return next;
     });
   }
 
   function toggleBox(box) {
     setSelectedBoxes(function(prev) {
-      var idx = prev.indexOf(box);
-      if (idx !== -1) {
-        setJobs(function(jobs) {
-          var next = jobs.filter(function(j){ return j.box !== box; });
-          try { localStorage.setItem("wr_jobs8", JSON.stringify(next)); } catch(e) {}
-          return next;
-        });
+      var idx=prev.indexOf(box);
+      if (idx!==-1) {
+        setJobs(function(js) { var next=js.filter(function(j){ return j.box!==box; }); save("wr_jobs9",next); return next; });
       }
-      return idx===-1 ? prev.concat([box]) : prev.filter(function(b){ return b!==box; });
+      return idx===-1?prev.concat([box]):prev.filter(function(b){ return b!==box; });
     });
   }
 
   function saveCfg() {
-    try { localStorage.setItem("wr_cfg5", JSON.stringify(cfg)); } catch(e) {}
-    try { localStorage.setItem("wr_boxes3", JSON.stringify(selectedBoxes)); } catch(e) {}
-    setCfgSaved(true); setShowSetup(false);
-    setTimeout(checkServer,500);
+    save("wr_cfg6",cfg); save("wr_boxes4",selectedBoxes); save("wr_autosync",autoSync);
+    setCfgSaved(true); setShowSetup(false); setTimeout(checkServer,500);
   }
 
   async function loadBoxes() {
     if (!cfg.email||!cfg.password||!cfg.serverUrl) return;
     setBoxesLoading(true);
     try {
-      var headers = {"Content-Type":"application/json"};
-      if (cfg.secret) headers["Authorization"]="Bearer "+cfg.secret;
-      var res = await fetch(cfg.serverUrl+"/boxes",{
-        method:"POST", headers:headers,
-        body:JSON.stringify({email:cfg.email,password:cfg.password,host:cfg.host,port:cfg.port})
-      });
-      var data = await res.json();
-      if (data.ok) {
-        var filtered = data.boxes.filter(function(b){ return SKIP_BOXES.indexOf(b)===-1; });
-        setAvailableBoxes(filtered);
-        if (selectedBoxes.length===0) setSelectedBoxes(filtered);
-      }
+      var headers={"Content-Type":"application/json"};
+      if(cfg.secret) headers["Authorization"]="Bearer "+cfg.secret;
+      var res=await fetch(cfg.serverUrl+"/boxes",{method:"POST",headers:headers,body:JSON.stringify({email:cfg.email,password:cfg.password,host:cfg.host,port:cfg.port})});
+      var data=await res.json();
+      if(data.ok) { var f=data.boxes.filter(function(b){ return SKIP_BOXES.indexOf(b)===-1; }); setAvailableBoxes(f); if(selectedBoxes.length===0) setSelectedBoxes(f); }
     } catch(e) {}
     setBoxesLoading(false);
   }
 
   function merge(incoming) {
     setJobs(function(prev) {
-      var ids = new Set(prev.map(function(j){ return j.id; }));
-      var fresh = incoming.filter(function(j){ return !ids.has(j.id); });
-      var next = fresh.concat(prev);
-      try { localStorage.setItem("wr_jobs8", JSON.stringify(next)); } catch(e) {}
-      return next;
+      var ids=new Set(prev.map(function(j){ return j.id; }));
+      var fresh=incoming.filter(function(j){ return !ids.has(j.id); });
+      var next=fresh.concat(prev);
+      save("wr_jobs9",next); return next;
     });
   }
 
-  var sync = useCallback(async function() {
-    if (!cfgSaved||!cfg.email||!cfg.serverUrl) { setError("Configura prima le credenziali."); return; }
-    if (selectedBoxes.length===0) { setError("Seleziona almeno una cartella."); return; }
-    setLoading(true); setError(null);
+  var doSync = useCallback(async function(silent) {
+    if (!cfgSaved||!cfg.email||!cfg.serverUrl) { if(!silent) setError("Configura prima le credenziali."); return; }
+    if (selectedBoxes.length===0) { if(!silent) setError("Seleziona almeno una cartella."); return; }
+    if (!silent) { setLoading(true); setError(null); setLoadMsg("Lettura email..."); }
     try {
-      setLoadMsg("Lettura email...");
-      var headers = {"Content-Type":"application/json"};
-      if (cfg.secret) headers["Authorization"]="Bearer "+cfg.secret;
-      var res = await fetch(cfg.serverUrl+"/sync",{
-        method:"POST", headers:headers,
-        body:JSON.stringify({email:cfg.email,password:cfg.password,host:cfg.host,port:cfg.port,boxes:selectedBoxes})
-      });
-      if (!res.ok) throw new Error("Server "+res.status);
-      var data = await res.json();
-      if (!data.ok) throw new Error(data.error||"Errore");
+      var headers={"Content-Type":"application/json"};
+      if(cfg.secret) headers["Authorization"]="Bearer "+cfg.secret;
+      var res=await fetch(cfg.serverUrl+"/sync",{method:"POST",headers:headers,body:JSON.stringify({email:cfg.email,password:cfg.password,host:cfg.host,port:cfg.port,boxes:selectedBoxes})});
+      if(!res.ok) throw new Error("Server "+res.status);
+      var data=await res.json();
+      if(!data.ok) throw new Error(data.error||"Errore");
       merge(data.jobs||[]);
-      setLoadMsg("+"+(data.jobs||[]).length+" email");
-    } catch(e) { setError("Errore: "+e.message); }
-    setLoadMsg(""); setLoading(false);
+      var now=new Date().toISOString(); setLastSync(now); save("wr_lastsync",now);
+      if(!silent) setLoadMsg("+"+(data.jobs||[]).length+" email");
+    } catch(e) { if(!silent) setError("Errore: "+e.message); }
+    if(!silent) { setLoadMsg(""); setLoading(false); }
   }, [cfg,cfgSaved,selectedBoxes]);
 
-  function setStatus(id, stato, e) {
-    if (e) e.stopPropagation();
-    setJobs(function(p) {
-      return p.map(function(j) {
-        if (j.id!==id) return j;
-        return {id:j.id,titolo:j.titolo,descrizione:j.descrizione,fonte:j.fonte,fonte_tipo:j.fonte_tipo,data_ricezione:j.data_ricezione,email_originale:j.email_originale,box:j.box,stato:stato};
-      });
+  syncRef.current = doSync;
+
+  useEffect(function() {
+    if (autoSyncRef.current) clearInterval(autoSyncRef.current);
+    if (autoSync>0) {
+      autoSyncRef.current = setInterval(function(){ syncRef.current(true); }, autoSync*60000);
+    }
+    return function(){ if(autoSyncRef.current) clearInterval(autoSyncRef.current); };
+  }, [autoSync]);
+
+  function updateJob(id, patch) {
+    setJobs(function(prev) {
+      var next=prev.map(function(j) { return j.id===id?Object.assign({},j,patch):j; });
+      save("wr_jobs9",next); return next;
     });
-    if (selected&&selected.id===id) setSelected(function(s){ return Object.assign({},s,{stato:stato}); });
+    if(selected&&selected.id===id) setSelected(function(s){ return Object.assign({},s,patch); });
   }
 
-  var threads = groupThreads(jobs).sort(function(a,b){ var da=new Date(a.data_ricezione).getTime(); var db=new Date(b.data_ricezione).getTime(); return sortDesc ? db-da : da-db; });
-  var filteredThreads = threads.filter(function(t) {
-    if (filter!=="tutti"&&t.stato!==filter) return false;
-    var q = search.toLowerCase();
-    return !q||[t.titolo,t.descrizione,t.fonte,t.box].some(function(s){ return (s||"").toLowerCase().indexOf(q)!==-1; });
+  function deleteThread(threadId, e) {
+    if(e) e.stopPropagation();
+    setJobs(function(prev) { var next=prev.filter(function(j){ return j.id!==threadId; }); save("wr_jobs9",next); return next; });
+    if(selected&&selected.id===threadId) setSelected(null);
+  }
+
+  function openModal(thread) {
+    setSelected(thread);
+    setExpandedEmail(null);
+    setEditNote(thread.note||"");
+    setEditBudget(thread.budget||"");
+    setEditTags(thread.tags||[]);
+    setTagInput("");
+  }
+
+  function saveModal() {
+    updateJob(selected.id,{note:editNote,budget:editBudget,tags:editTags});
+    setSelected(null);
+  }
+
+  function addTag(tag) {
+    var t = tag.trim();
+    if (!t||editTags.indexOf(t)!==-1) return;
+    setEditTags(function(prev){ return prev.concat([t]); });
+    setTagInput("");
+  }
+
+  var threads = groupThreads(jobs).sort(function(a,b) {
+    var da=new Date(a.data_ricezione).getTime(), db=new Date(b.data_ricezione).getTime();
+    return sortDesc?db-da:da-db;
   });
-
-  var stats = {
-    totale: threads.length,
-    nuovo: threads.filter(function(t){ return t.stato==="nuovo"; }).length,
-    applicato: threads.filter(function(t){ return t.stato==="applicato"; }).length,
-    email: jobs.length
-  };
-
+  var filteredThreads = threads.filter(function(t) {
+    if(filter!=="tutti"&&t.stato!==filter) return false;
+    var q=search.toLowerCase();
+    return !q||[t.titolo,t.descrizione,t.fonte,t.box,t.note].some(function(s){ return (s||"").toLowerCase().indexOf(q)!==-1; });
+  });
+  var stats = { totale:threads.length, nuovo:threads.filter(function(t){ return t.stato==="nuovo"; }).length, applicato:threads.filter(function(t){ return t.stato==="applicato"; }).length, email:jobs.length };
   var serverClass = "server-dot"+(serverOnline===true?" online":serverOnline===false?" offline":"");
+
+  function fmtLastSync(ls) {
+    if(!ls) return "mai";
+    var diff=Math.floor((Date.now()-new Date(ls))/60000);
+    if(diff<1) return "adesso";
+    if(diff<60) return diff+"min fa";
+    return Math.floor(diff/60)+"h fa";
+  }
 
   return (
     <>
@@ -338,17 +381,23 @@ export default function WorkRadar() {
           </div>
           <div className="topbar-right">
             {cfg.serverUrl&&<div className="server-status"><span className={serverClass}/>{serverOnline===true?"online":serverOnline===false?"offline":"..."}</div>}
-            <button className={"btn btn-outline"+(cfgSaved?" on":"")} onClick={function(){ setShowSetup(true); }}>
-              {cfgSaved?"configurato":"+ configura"}
-            </button>
-            <button className="btn btn-solid" onClick={sync} disabled={loading}>{loading?"...":"Sincronizza"}</button>
+            <button className={"btn btn-outline"+(cfgSaved?" on":"")} onClick={function(){ setShowSetup(true); }}>{cfgSaved?"configurato":"+ configura"}</button>
+            <button className="btn btn-solid" onClick={function(){ doSync(false); }} disabled={loading}>{loading?"...":"Sincronizza"}</button>
           </div>
         </div>
 
         <div className="main">
           <div className="page-header">
-            <div className="page-title">conversazioni</div>
-            <div className="page-count">{String(stats.totale).padStart(2,"0")}</div>
+            <div>
+              <div className="page-title">conversazioni</div>
+              <div className="page-count">{String(stats.totale).padStart(2,"0")}</div>
+            </div>
+            <div className="autosync-info">
+              <span className={"autosync-dot"+(autoSync>0?" active":"")}/>
+              {autoSync>0?"auto ogni "+autoSync+"min":"auto-sync off"}
+              <br/>
+              ultimo sync: {fmtLastSync(lastSync)}
+            </div>
           </div>
 
           <div className="stats">
@@ -364,16 +413,18 @@ export default function WorkRadar() {
             <button className={"btn btn-outline"+(filter==="tutti"?" on":"")} onClick={function(){ setFilter("tutti"); }}>Tutti</button>
             <div className="toolbar-sep"/>
             {STATUSES.map(function(s){
-              var count = threads.filter(function(t){ return t.stato===s; }).length;
+              var count=threads.filter(function(t){ return t.stato===s; }).length;
               return (
                 <button key={s} className={"btn btn-outline"+(filter===s?" on":"")} onClick={function(){ setFilter(s); }}>
                   {STATUS_LABEL[s]}<span style={{marginLeft:4,opacity:.4,fontFamily:"DM Mono,monospace",fontSize:10}}>{count}</span>
                 </button>
               );
             })}
-            <input className="search" placeholder="cerca..." value={search} onChange={function(e){ setSearch(e.target.value); }}/>
             <div className="toolbar-sep"/>
-            <button className={"btn btn-outline"+(sortDesc?" on":"")} onClick={function(){ setSortDesc(function(v){ return !v; }); }} title="Ordina per data">{sortDesc?"↓ recenti":"↑ vecchi"}</button>
+            <button className={"btn btn-outline"+(sortDesc?" on":"")} onClick={function(){ setSortDesc(function(v){ return !v; }); }}>
+              {sortDesc?"↓ recenti":"↑ vecchi"}
+            </button>
+            <input className="search" placeholder="cerca..." value={search} onChange={function(e){ setSearch(e.target.value); }}/>
           </div>
 
           <div className="grid">
@@ -381,25 +432,39 @@ export default function WorkRadar() {
               <div className="empty"><div className="empty-icon">. . .</div><div className="empty-title">Nessuna email</div><div className="empty-sub">Configura e scegli le cartelle da sincronizzare</div></div>
             )}
             {threads.length>0&&filteredThreads.length===0&&(
-              <div className="empty"><div className="empty-icon">0</div><div className="empty-title">Nessun risultato</div><div className="empty-sub">Cambia filtro o ricerca</div></div>
+              <div className="empty"><div className="empty-icon">0</div><div className="empty-title">Nessun risultato</div></div>
             )}
             {filteredThreads.map(function(thread,i){
-              var isThread = thread.count > 1;
-              var nextStato = STATUSES[(STATUSES.indexOf(thread.stato)+1)%STATUSES.length];
+              var isThread=thread.count>1;
+              var nextStato=STATUSES[(STATUSES.indexOf(thread.stato)+1)%STATUSES.length];
+              var tc=tagColor(thread.titolo||"");
               return (
-                <div key={thread.id} className={"card stato-"+thread.stato} style={{animationDelay:i*20+"ms",marginBottom:isThread?10:0}} onClick={function(){ setSelected(thread); setExpandedEmail(null); }}>
+                <div key={thread.id} className={"card stato-"+thread.stato} style={{animationDelay:i*20+"ms",marginBottom:isThread?10:0}} onClick={function(){ openModal(thread); }}>
                   {isThread&&<div className="thread-stack"/>}
                   {isThread&&thread.count>2&&<div className="thread-stack2"/>}
+                  <div className="card-delete" onClick={function(e){ deleteThread(thread.id,e); }}>✕</div>
                   {isThread&&<div className="thread-badge">{thread.count} email</div>}
                   <div className="card-top">
-                    <div className="card-source">{thread.box&&<span className="card-box">{shortBox(thread.box)}</span>}</div>
+                    <div className="card-meta">
+                      {thread.box&&<span className="card-box">{shortBox(thread.box)}</span>}
+                    </div>
                     <div className="card-age">{age(thread.data_ricezione)}</div>
                   </div>
                   <div className="card-title">{thread.titolo||"Email"}</div>
                   <div className="card-from">{thread.fonte||""}</div>
+                  {thread.tags&&thread.tags.length>0&&(
+                    <div className="card-tags">
+                      {thread.tags.slice(0,3).map(function(tag){
+                        var c=tagColor(tag);
+                        return <span key={tag} className="tag" style={{background:c.bg,borderColor:c.border,color:c.text}}>{tag}</span>;
+                      })}
+                    </div>
+                  )}
+                  {thread.note&&<div className="card-note-preview">📝 {thread.note}</div>}
                   <div className="card-desc">{thread.descrizione||""}</div>
                   <div className="card-bottom">
-                    <span className={"pill "+thread.stato} onClick={function(e){ setStatus(thread.id,nextStato,e); }}>
+                    {thread.budget?<span className="card-budget-badge">{thread.budget}</span>:<span/>}
+                    <span className={"pill "+thread.stato} onClick={function(e){ e.stopPropagation(); updateJob(thread.id,{stato:nextStato}); }}>
                       <span className="pill-dot"/><span>{STATUS_LABEL[thread.stato]}</span>
                     </span>
                   </div>
@@ -411,37 +476,33 @@ export default function WorkRadar() {
       </div>
 
       {selected&&(
-        <div className="overlay" onClick={function(){ setSelected(null); setExpandedEmail(null); }}>
+        <div className="overlay" onClick={saveModal}>
           <div className="modal" onClick={function(e){ e.stopPropagation(); }}>
-            <div className="modal-eyebrow">
-              {selected.box?shortBox(selected.box)+" · ":""}{fmtDate(selected.data_ricezione)}
-              {selected.count>1?" · "+selected.count+" email":""}
-            </div>
+            <div className="modal-eyebrow">{selected.box?shortBox(selected.box)+" · ":""}{fmtDate(selected.data_ricezione)}{selected.count>1?" · "+selected.count+" email":""}</div>
             <div className="modal-title">{selected.titolo}</div>
-            <div className="modal-grid">
-              <div className="mg-cell"><div className="mg-key">Da</div><div className="mg-val">{selected.fonte||"-"}</div></div>
-              <div className="mg-cell"><div className="mg-key">Cartella</div><div className="mg-val">{selected.box?shortBox(selected.box):"-"}</div></div>
-              <div className="mg-cell"><div className="mg-key">Stato</div><div className="mg-val">{STATUS_LABEL[selected.stato]}</div></div>
+
+            <div className="modal-meta-row">
+              <div className="modal-meta-item"><div className="modal-meta-key">Da</div><div className="modal-meta-val">{selected.fonte||"-"}</div></div>
+              <div className="modal-meta-item"><div className="modal-meta-key">Cartella</div><div className="modal-meta-val">{selected.box?shortBox(selected.box):"-"}</div></div>
+              <div className="modal-meta-item"><div className="modal-meta-key">Stato</div><div className="modal-meta-val">{STATUS_LABEL[selected.stato]}</div></div>
             </div>
 
             {selected.emails&&selected.emails.length>1?(
               <>
-                <div className="modal-sl">{selected.emails.length} email nel thread — clicca per espandere</div>
+                <div className="modal-sl">{selected.emails.length} email — tocca per espandere</div>
                 <div className="thread-list">
-                  {selected.emails.map(function(em,i){
-                    var isExpanded = expandedEmail===em.id;
+                  {selected.emails.map(function(em){
+                    var isExp=expandedEmail===em.id;
                     return (
                       <div key={em.id} className="thread-email">
-                        <div className="thread-email-header" onClick={function(){ setExpandedEmail(isExpanded?null:em.id); }}>
+                        <div className="thread-email-header" onClick={function(){ setExpandedEmail(isExp?null:em.id); }}>
                           <div className="thread-email-from">{em.fonte||"sconosciuto"}</div>
                           <div style={{display:"flex",alignItems:"center",gap:8}}>
                             <div className="thread-email-date">{fmtDate(em.data_ricezione)}</div>
-                            <div style={{fontFamily:"DM Mono,monospace",fontSize:10,color:"var(--text3)"}}>{isExpanded?"▲":"▼"}</div>
+                            <span style={{fontFamily:"DM Mono,monospace",fontSize:10,color:"var(--text3)"}}>{isExp?"▲":"▼"}</span>
                           </div>
                         </div>
-                        {isExpanded&&(
-                          <div className="thread-email-body">{em.descrizione||"-"}</div>
-                        )}
+                        {isExp&&<div className="thread-email-body">{em.descrizione||"-"}</div>}
                       </div>
                     );
                   })}
@@ -454,17 +515,46 @@ export default function WorkRadar() {
               </>
             )}
 
-            <div className="modal-sl">Cambia stato</div>
+            <div className="modal-sl">Budget</div>
+            <div className="modal-budget-row">
+              <input className="modal-budget-input" placeholder="es. €500, €50/h, trattabile..." value={editBudget} onChange={function(e){ setEditBudget(e.target.value); }}/>
+            </div>
+
+            <div className="modal-sl">Tag</div>
+            <div className="tags-area">
+              {editTags.map(function(tag){
+                var c=tagColor(tag);
+                return (
+                  <span key={tag} className="tag-pill" style={{background:c.bg,border:"1px solid "+c.border,color:c.text}}>
+                    {tag}
+                    <span className="tag-pill-x" onClick={function(){ setEditTags(function(p){ return p.filter(function(t){ return t!==tag; }); }); }}>✕</span>
+                  </span>
+                );
+              })}
+            </div>
+            <div className="tag-input-row">
+              <input className="tag-input" placeholder="Aggiungi tag..." value={tagInput} onChange={function(e){ setTagInput(e.target.value); }} onKeyDown={function(e){ if(e.key==="Enter"||e.key===","){ e.preventDefault(); addTag(tagInput); } }}/>
+              <button className="btn btn-outline btn-sm" onClick={function(){ addTag(tagInput); }}>+</button>
+            </div>
+
+            <div className="modal-sl">Note private</div>
+            <textarea className="modal-note-area" placeholder="Aggiungi una nota..." value={editNote} onChange={function(e){ setEditNote(e.target.value); }}/>
+
+            <div className="modal-sl">Stato</div>
             <div className="modal-status">
               {STATUSES.map(function(s){
                 return (
-                  <span key={s} className={"pill "+s} style={selected.stato===s?{background:"var(--border2)"}:{}} onClick={function(e){ setStatus(selected.id,s,e); }}>
+                  <span key={s} className={"pill "+s} style={selected.stato===s?{background:"var(--border2)"}:{}} onClick={function(){ updateJob(selected.id,{stato:s}); setSelected(function(sel){ return Object.assign({},sel,{stato:s}); }); }}>
                     <span className="pill-dot"/><span>{STATUS_LABEL[s]}</span>
                   </span>
                 );
               })}
             </div>
-            <div className="modal-close-row"><button className="btn btn-outline" onClick={function(){ setSelected(null); setExpandedEmail(null); }}>Chiudi</button></div>
+
+            <div className="modal-actions">
+              <button className="btn btn-outline" style={{color:"var(--red)",borderColor:"var(--red)"}} onClick={function(){ deleteThread(selected.id,null); }}>Elimina</button>
+              <button className="btn btn-solid" onClick={saveModal}>Salva</button>
+            </div>
           </div>
         </div>
       )}
@@ -478,49 +568,55 @@ export default function WorkRadar() {
               <button className={"tab"+(setupTab==="server"?" active":"")} onClick={function(){ setSetupTab("server"); }}>Server</button>
               <button className={"tab"+(setupTab==="imap"?" active":"")} onClick={function(){ setSetupTab("imap"); }}>Email</button>
               <button className={"tab"+(setupTab==="boxes"?" active":"")} onClick={function(){ setSetupTab("boxes"); if(availableBoxes.length===0) loadBoxes(); }}>Cartelle</button>
+              <button className={"tab"+(setupTab==="sync"?" active":"")} onClick={function(){ setSetupTab("sync"); }}>Auto-sync</button>
             </div>
 
-            {setupTab==="server"&&(
-              <>
-                <div className="field"><label>URL Server Railway</label><input value={cfg.serverUrl} onChange={function(e){ setField("serverUrl",e.target.value); }} placeholder="https://smartworking-production.up.railway.app"/></div>
-                <div className="field"><label>Secret Token</label><input type="password" value={cfg.secret} onChange={function(e){ setField("secret",e.target.value); }} placeholder="WORKRADAR_SECRET"/></div>
-              </>
-            )}
-            {setupTab==="imap"&&(
-              <>
-                <div className="field"><label>Server IMAP</label><input value={cfg.host} onChange={function(e){ setField("host",e.target.value); }} placeholder="pop.securemail.pro"/></div>
-                <div className="field"><label>Porta</label><input value={cfg.port} onChange={function(e){ setField("port",e.target.value); }} placeholder="993"/></div>
-                <div className="field"><label>Email</label><input type="email" value={cfg.email} onChange={function(e){ setField("email",e.target.value); }} placeholder="tua@email.it"/></div>
-                <div className="field"><label>Password</label><input type="password" value={cfg.password} onChange={function(e){ setField("password",e.target.value); }} placeholder="password email"/></div>
-              </>
-            )}
-            {setupTab==="boxes"&&(
-              <>
-                {boxesLoading&&<div className="box-loading">Caricamento cartelle...</div>}
-                {!boxesLoading&&availableBoxes.length===0&&(
-                  <div className="box-loading">
-                    <div style={{marginBottom:10}}>Inserisci prima le credenziali email.</div>
-                    <button className="btn btn-outline" onClick={loadBoxes}>Carica cartelle</button>
-                  </div>
-                )}
-                {!boxesLoading&&availableBoxes.length>0&&(
-                  <>
-                    <div className="boxes-list">
-                      {availableBoxes.map(function(box){
-                        var isOn = selectedBoxes.indexOf(box)!==-1;
-                        return (
-                          <div key={box} className={"box-item"+(isOn?" checked":"")} onClick={function(){ toggleBox(box); }}>
-                            <div className={"box-check"+(isOn?" on":"")}>{isOn&&<div className="box-check-inner"/>}</div>
-                            <span className="box-name">{box}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div className="setup-note">{selectedBoxes.length} di {availableBoxes.length} cartelle selezionate. Deselezionare rimuove subito le email.</div>
-                  </>
-                )}
-              </>
-            )}
+            {setupTab==="server"&&(<>
+              <div className="field"><label>URL Server Railway</label><input value={cfg.serverUrl} onChange={function(e){ setField("serverUrl",e.target.value); }} placeholder="https://smartworking-production.up.railway.app"/></div>
+              <div className="field"><label>Secret Token</label><input type="password" value={cfg.secret} onChange={function(e){ setField("secret",e.target.value); }} placeholder="WORKRADAR_SECRET"/></div>
+            </>)}
+
+            {setupTab==="imap"&&(<>
+              <div className="field"><label>Server IMAP</label><input value={cfg.host} onChange={function(e){ setField("host",e.target.value); }} placeholder="pop.securemail.pro"/></div>
+              <div className="field"><label>Porta</label><input value={cfg.port} onChange={function(e){ setField("port",e.target.value); }} placeholder="993"/></div>
+              <div className="field"><label>Email</label><input type="email" value={cfg.email} onChange={function(e){ setField("email",e.target.value); }} placeholder="tua@email.it"/></div>
+              <div className="field"><label>Password</label><input type="password" value={cfg.password} onChange={function(e){ setField("password",e.target.value); }} placeholder="password email"/></div>
+            </>)}
+
+            {setupTab==="boxes"&&(<>
+              {boxesLoading&&<div className="box-loading">Caricamento cartelle...</div>}
+              {!boxesLoading&&availableBoxes.length===0&&(
+                <div className="box-loading"><div style={{marginBottom:10}}>Inserisci prima le credenziali email.</div><button className="btn btn-outline" onClick={loadBoxes}>Carica cartelle</button></div>
+              )}
+              {!boxesLoading&&availableBoxes.length>0&&(<>
+                <div className="boxes-list">
+                  {availableBoxes.map(function(box){
+                    var isOn=selectedBoxes.indexOf(box)!==-1;
+                    return (
+                      <div key={box} className={"box-item"+(isOn?" checked":"")} onClick={function(){ toggleBox(box); }}>
+                        <div className={"box-check"+(isOn?" on":"")}>{isOn&&<div className="box-check-inner"/>}</div>
+                        <span className="box-name">{box}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="setup-note">{selectedBoxes.length} di {availableBoxes.length} cartelle selezionate.</div>
+              </>)}
+            </>)}
+
+            {setupTab==="sync"&&(<>
+              <div className="field">
+                <label>Frequenza auto-sync</label>
+                <select value={autoSync} onChange={function(e){ setAutoSync(parseInt(e.target.value)); }}>
+                  <option value={0}>Disattivato</option>
+                  <option value={5}>Ogni 5 minuti</option>
+                  <option value={15}>Ogni 15 minuti</option>
+                  <option value={30}>Ogni 30 minuti</option>
+                  <option value={60}>Ogni ora</option>
+                </select>
+              </div>
+              <div className="setup-note">Con auto-sync attivo la dashboard si aggiorna automaticamente in background. Tieni la pagina aperta sul telefono.</div>
+            </>)}
 
             <div className="setup-actions">
               <button className="btn btn-outline" onClick={function(){ setShowSetup(false); }}>Annulla</button>
