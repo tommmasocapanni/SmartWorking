@@ -167,6 +167,8 @@ var server = http.createServer(async function(req, res) {
         }
         imap2.end();
         console.log("  Totale: " + allEmails.length);
+        global._cachedJobs = allEmails;
+        global._lastSync = new Date().toISOString();
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ ok: true, total: allEmails.length, jobs: allEmails }));
       } catch(e) {
@@ -176,6 +178,38 @@ var server = http.createServer(async function(req, res) {
       }
     });
     return;
+  }
+
+
+  // Widget endpoint - returns summary for Scriptable widget
+  if (pathname === "/widget" && req.method === "GET") {
+    if (SECRET) {
+      var authW = req.headers["authorization"] || "";
+      if (authW !== "Bearer " + SECRET) {
+        res.writeHead(401, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Unauthorized" }));
+      }
+    }
+    // Read jobs from a simple in-memory cache (set during /sync)
+    var jobs = global._cachedJobs || [];
+    var nuovi = jobs.filter(function(j){ return j.stato === "nuovo"; });
+    var summary = nuovi.slice(0, 5).map(function(j){
+      return {
+        id: j.id,
+        titolo: (j.titolo || "Email").slice(0, 60),
+        fonte: (j.fonte || "").slice(0, 30),
+        box: (j.box || "").replace("INBOX.",""),
+        data: j.data_ricezione
+      };
+    });
+    res.writeHead(200, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({
+      ok: true,
+      nuovi: nuovi.length,
+      totale: jobs.length,
+      items: summary,
+      lastUpdate: global._lastSync || null
+    }));
   }
 
   res.writeHead(404); res.end("Not found");
