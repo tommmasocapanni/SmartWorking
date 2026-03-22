@@ -165,19 +165,17 @@ export default function WorkRadar() {
   const [cfgSaved, setCfgSaved] = useState(false);
 
   useEffect(function() {
-    (async function() {
-      try {
-        const j = await window.storage.get("wr_jobs5");
-        if (j) setJobs(JSON.parse(j.value));
-        const c = await window.storage.get("wr_cfg2");
-        if (c) { setCfg(JSON.parse(c.value)); setCfgSaved(true); }
-      } catch(e) {}
-    })();
+    try {
+      const j = localStorage.getItem("wr_jobs5");
+      if (j) setJobs(JSON.parse(j));
+      const c = localStorage.getItem("wr_cfg2");
+      if (c) { setCfg(JSON.parse(c)); setCfgSaved(true); }
+    } catch(e) {}
   }, []);
 
   useEffect(function() {
     if (!jobs.length) return;
-    window.storage.set("wr_jobs5", JSON.stringify(jobs)).catch(function(){});
+    try { localStorage.setItem("wr_jobs5", JSON.stringify(jobs)); } catch(e) {}
   }, [jobs]);
 
   const checkServer = useCallback(async function() {
@@ -210,7 +208,7 @@ export default function WorkRadar() {
   }
 
   function saveCfg() {
-    window.storage.set("wr_cfg2", JSON.stringify(cfg)).catch(function(){});
+    try { localStorage.setItem("wr_cfg2", JSON.stringify(cfg)); } catch(e) {}
     setCfgSaved(true);
     setShowSetup(false);
     setTimeout(checkServer, 500);
