@@ -148,9 +148,8 @@ const server = http.createServer(async (req, res) => {
   res.writeHead(404); res.end("Not found");
 });
 
-server.listen(PORT, () => {
-  console.log(`✦ WorkRadar Server v1.1`);
-  console.log(`  Porta: ${PORT}`);
-  console.log(`  Auth: ${SECRET ? "✓ attiva" : "✗ nessuna (aggiungi WORKRADAR_SECRET su Railway)"}`);
-  console.log(`  CORS: ${process.env.ALLOWED_ORIGIN || "* (tutti)"}`);
+server.listen(PORT, function() {
+  console.log("WorkRadar Server v1.1 - Porta: " + PORT);
+  console.log("Auth: " + (SECRET ? "attiva" : "nessuna"));
+  console.log("CORS: " + (process.env.ALLOWED_ORIGIN || "*"));
 });
