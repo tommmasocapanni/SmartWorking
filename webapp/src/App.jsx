@@ -550,8 +550,8 @@ export default function WorkRadar() {
         <div className="main" onTouchStart={onTouchStartPtr} onTouchMove={onTouchMovePtr} onTouchEnd={onTouchEndPtr} style={{paddingTop: ptrY>0 ? 28+ptrY*0.4+"px" : undefined, transition: ptrY===0?"padding .25s ease":undefined}}>
           <div className="page-header">
             <div>
-              <div className="page-title">conversazioni</div>
-              <div className="page-count">{String(stats.totale).padStart(2,"0")}</div>
+              <div className="page-title">nuovi lavori</div>
+              <div className="page-count" style={{color:stats.nuovo>0?"var(--text)":"var(--text3)"}}>{String(stats.nuovo).padStart(2,"0")}</div>
             </div>
             <div className="autosync-info">
               <span className={"autosync-dot"+(autoSync>0?" active":"")}/>
