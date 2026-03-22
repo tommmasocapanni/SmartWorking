@@ -375,7 +375,7 @@ export default function WorkRadar() {
             {setupTab === "server" && <>
               <div className="field">
                 <label>URL Server Railway</label>
-                <input value={cfg.serverUrl} onChange={function(e){ setCfg(function(p){ return Object.assign({},p,{serverUrl:e.target.value.replace(/\/$/,"")}); })} placeholder="https://smartworking-production.up.railway.app"/>
+                <input value={cfg.serverUrl} onChange={function(e){ var v=e.target.value; if(v.endsWith("/"))v=v.slice(0,-1); setCfg(function(p){ return Object.assign({},p,{serverUrl:v}); })} placeholder="https://smartworking-production.up.railway.app"/>
               </div>
               <div className="field">
                 <label>Secret Token</label>
