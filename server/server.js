@@ -21,7 +21,9 @@ function getBoxes(imap) {
       function walk(obj, prefix) {
         Object.keys(obj).forEach(function(k) {
           var full = prefix ? prefix + obj[k].delimiter + k : k;
-          names.push(full);
+          if (full !== "INBOX.Trash" && full !== "INBOX.Spam" && full !== "INBOX.Sent" && full !== "INBOX.Drafts") {
+            names.push(full);
+          }
           if (obj[k].children) walk(obj[k].children, full);
         });
       }
@@ -37,7 +39,7 @@ function fetchFromBox(imap, boxName) {
       if (err) return resolve([]);
       var total = box.messages.total;
       if (total === 0) return resolve([]);
-      var start = Math.max(1, total - 29);
+      var start = Math.max(1, total - 19);
       var emails = [];
       var fetch = imap.fetch(start + ":*", { bodies: "" });
       fetch.on("message", function(msg) {
@@ -50,7 +52,7 @@ function fetchFromBox(imap, boxName) {
               subject: parsed.subject || "(nessun oggetto)",
               from: parsed.from ? parsed.from.text : "sconosciuto",
               date: parsed.date ? parsed.date.toISOString() : new Date().toISOString(),
-              text: (parsed.text || "").slice(0, 800),
+              text: (parsed.text || "").slice(0, 400),
               box: boxName
             });
           });
@@ -80,10 +82,13 @@ function fetchEmails(config) {
     imap.once("ready", async function() {
       try {
         var boxes = await getBoxes(imap);
-        console.log("  Cartelle trovate: " + boxes.join(", "));
+        console.log("  Cartelle: " + boxes.join(", "));
         var allEmails = [];
         for (var i = 0; i < boxes.length; i++) {
           var boxEmails = await fetchFromBox(imap, boxes[i]);
+          if (boxEmails.length > 0) {
+            console.log("  " + boxes[i] + ": " + boxEmails.length + " email");
+          }
           allEmails = allEmails.concat(boxEmails);
         }
         imap.end();
@@ -100,11 +105,11 @@ function fetchEmails(config) {
 }
 
 function analyzeWithClaude(emails, apiKey) {
-  var preview = emails.slice(0, 50).map(function(e) {
-    return "ID:" + e.id + "\nCartella:" + e.box + "\nDa:" + e.from + "\nOggetto:" + e.subject + "\nData:" + e.date + "\nTesto:" + e.text.slice(0, 300);
+  var preview = emails.slice(0, 60).map(function(e) {
+    return "ID:" + e.id + "\nCartella:" + e.box + "\nDa:" + e.from + "\nOggetto:" + e.subject + "\nData:" + e.date + "\nTesto:" + e.text.slice(0, 200);
   }).join("\n---\n");
 
-  var systemPrompt = "Analizza queste email. Trova TUTTE quelle che riguardano lavoro freelance, offerte, brief clienti, notifiche da piattaforme come Addlance, Fiverr, Upwork, richieste di collaborazione, nuovi progetti.\nSii INCLUSIVO - meglio includere troppo che troppo poco.\nRispondi SOLO con JSON array (no markdown):\n[{\"id\":\"...\",\"titolo\":\"...\",\"descrizione\":\"...\",\"budget\":\"... o null\",\"scadenza\":\"ISO o null\",\"fonte\":\"mittente\",\"fonte_tipo\":\"register\",\"data_ricezione\":\"ISO\",\"email_originale\":\"prime 200 char\"}]\nSe nessuna: [].";
+  var systemPrompt = "Analizza queste email e trova quelle relative a lavoro freelance, offerte, brief, notifiche da Addlance/Fiverr/Upwork, richieste collaborazione.\nSii INCLUSIVO.\nRispondi SOLO con JSON array (no markdown, no testo prima o dopo):\n[{\"id\":\"...\",\"titolo\":\"...\",\"descrizione\":\"...\",\"budget\":\"... o null\",\"scadenza\":\"ISO o null\",\"fonte\":\"mittente\",\"fonte_tipo\":\"register\",\"data_ricezione\":\"ISO\",\"email_originale\":\"prime 200 char\"}]\nSe nessuna: [].";
 
   var body = JSON.stringify({
     model: "claude-sonnet-4-20250514",
@@ -130,10 +135,18 @@ function analyzeWithClaude(emails, apiKey) {
       res.on("end", function() {
         try {
           var json = JSON.parse(data);
+          if (json.error) {
+            console.log("  Claude errore API: " + json.error.message);
+            return resolve([]);
+          }
           var txt = (json.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
+          console.log("  Claude risposta (prime 300 char): " + txt.slice(0, 300));
           var match = txt.replace(/```json|```/g, "").trim().match(/\[[\s\S]*\]/);
           resolve(match ? JSON.parse(match[0]) : []);
-        } catch(e) { reject(e); }
+        } catch(e) {
+          console.log("  Errore parsing risposta Claude: " + e.message);
+          reject(e);
+        }
       });
     });
     req.on("error", reject);
@@ -149,7 +162,7 @@ var server = http.createServer(async function(req, res) {
 
   if (pathname === "/health") {
     res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ ok: true, version: "1.2.0" }));
+    res.end(JSON.stringify({ ok: true, version: "1.3.0" }));
     return;
   }
 
@@ -166,27 +179,24 @@ var server = http.createServer(async function(req, res) {
     req.on("end", async function() {
       try {
         var parsed = JSON.parse(body);
-        var email = parsed.email;
-        var password = parsed.password;
-        var host = parsed.host;
-        var port = parsed.port;
-        var apiKey = parsed.apiKey;
-        if (!email || !password) {
+        if (!parsed.email || !parsed.password) {
           res.writeHead(400, { "Content-Type": "application/json" });
           return res.end(JSON.stringify({ error: "email e password richiesti" }));
         }
-        console.log("[" + new Date().toISOString() + "] sync -> " + email);
-        var emails = await fetchEmails({ email: email, password: password, host: host, port: port });
-        console.log("  " + emails.length + " email recuperate da tutte le cartelle");
+        console.log("[" + new Date().toISOString() + "] sync -> " + parsed.email);
+        var emails = await fetchEmails({ email: parsed.email, password: parsed.password, host: parsed.host, port: parsed.port });
+        console.log("  Totale email: " + emails.length);
         var jobs = [];
-        if (emails.length > 0 && apiKey) {
-          jobs = await analyzeWithClaude(emails, apiKey);
-          console.log("  " + jobs.length + " lavori trovati");
+        if (emails.length > 0 && parsed.apiKey) {
+          jobs = await analyzeWithClaude(emails, parsed.apiKey);
+          console.log("  Lavori trovati: " + jobs.length);
+        } else if (!parsed.apiKey) {
+          console.log("  ATTENZIONE: API key mancante!");
         }
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ ok: true, total: emails.length, jobs: jobs }));
       } catch(e) {
-        console.error("Errore:", e.message);
+        console.error("Errore sync: " + e.message);
         res.writeHead(500, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: e.message }));
       }
@@ -197,7 +207,6 @@ var server = http.createServer(async function(req, res) {
 });
 
 server.listen(PORT, function() {
-  console.log("WorkRadar Server v1.2 - Porta: " + PORT);
+  console.log("WorkRadar Server v1.3 - Porta: " + PORT);
   console.log("Auth: " + (SECRET ? "attiva" : "nessuna"));
-  console.log("CORS: *");
 });
