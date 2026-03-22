@@ -242,6 +242,71 @@ function deadlineInfo(deadline) {
 function save(key,val){try{localStorage.setItem(key,JSON.stringify(val));}catch(e){}}
 function load(key){try{var v=localStorage.getItem(key);return v?JSON.parse(v):null;}catch(e){return null;}}
 
+function CardItem(props) {
+  var thread=props.thread, i=props.i, onOpen=props.onOpen, onUpdate=props.onUpdate, filterTag=props.filterTag, onFilterBox=props.onFilterBox, onFilterTag=props.onFilterTag;
+  var isThread=thread.count>1;
+  var nextStato=STATUSES[(STATUSES.indexOf(thread.stato)+1)%STATUSES.length];
+  var dl=deadlineInfo(thread.deadline);
+  var touchX=useRef(null);
+  function onTouchStart(e){ touchX.current=e.touches[0].clientX; }
+  function onTouchEnd(e){
+    if(touchX.current===null) return;
+    var dx=e.changedTouches[0].clientX-touchX.current;
+    touchX.current=null;
+    if(dx>70) onUpdate(thread.id,{stato:"visto"});
+    else if(dx<-70) onUpdate(thread.id,{stato:"archiviato"});
+  }
+  return (
+    <div className="card-wrap" style={{marginBottom:isThread?10:0}}>
+      <div className="swipe-hint left">✓</div>
+      <div className="swipe-hint right">👁</div>
+      <div
+        className={"card stato-"+thread.stato+(thread.pinned?" pinned":"")}
+        style={{animationDelay:i*18+"ms"}}
+        onClick={function(){onOpen(thread);}}
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+      >
+        {isThread&&<div className="thread-stack"/>}
+        {isThread&&thread.count>2&&<div className="thread-stack2"/>}
+        {isThread&&<div className="thread-badge">{thread.count} email</div>}
+        <div className="card-top">
+          <div className="card-meta">
+            {thread.box&&<span className="card-box" onClick={function(e){e.stopPropagation();onFilterBox(thread.box);}}>{shortBox(thread.box)}</span>}
+          </div>
+          <div className="card-right">
+            <div className="card-age">{age(thread.data_ricezione)}</div>
+            <button className={"pin-btn"+(thread.pinned?" on":"")} onClick={function(e){e.stopPropagation();onUpdate(thread.id,{pinned:!thread.pinned});}} title={thread.pinned?"Rimuovi pin":"Fissa in cima"}>
+              {thread.pinned?"⭐":"☆"}
+            </button>
+          </div>
+        </div>
+        <div className="card-title">{thread.titolo||"Email"}</div>
+        <div className="card-from">{thread.fonte||""}</div>
+        {thread.tags&&thread.tags.length>0&&(
+          <div className="card-tags">
+            {thread.tags.slice(0,3).map(function(tag){
+              var c=tagColor(tag);
+              return <span key={tag} className="tag" style={{background:c.bg,borderColor:c.border,color:c.text}} onClick={function(e){e.stopPropagation();onFilterTag(filterTag===tag?"":tag);}}>{tag}</span>;
+            })}
+          </div>
+        )}
+        {thread.note&&<div className="card-note-preview">📝 {thread.note}</div>}
+        <div className="card-desc">{thread.descrizione||""}</div>
+        <div className="card-bottom">
+          <div className="card-bottom-left">
+            {thread.budget&&<span className="card-budget-badge">{thread.budget}</span>}
+            {dl&&<span className={"deadline-badge "+dl.cls}>⏰ {dl.label}</span>}
+          </div>
+          <span className={"pill "+thread.stato} onClick={function(e){e.stopPropagation();onUpdate(thread.id,{stato:nextStato});}}>
+            <span className="pill-dot"/><span>{STATUS_LABEL[thread.stato]}</span>
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function WorkRadar() {
   var [jobs,setJobs]=useState([]);
   var [dark,setDark]=useState(false);
@@ -410,20 +475,6 @@ export default function WorkRadar() {
     setEditTags(function(p){return p.concat([t]);});setTagInput("");
   }
 
-  // Swipe handling
-  function useSwipe(onLeft,onRight){
-    var touchX=useRef(null);
-    return {
-      onTouchStart:function(e){touchX.current=e.touches[0].clientX;},
-      onTouchEnd:function(e){
-        if(touchX.current===null)return;
-        var dx=e.changedTouches[0].clientX-touchX.current;
-        touchX.current=null;
-        if(dx>70)onRight();
-        else if(dx<-70)onLeft();
-      }
-    };
-  }
 
   var allTags=[...new Set(jobs.flatMap(function(j){return j.tags||[];}))];
   var allBoxes=[...new Set(jobs.map(function(j){return j.box;}).filter(Boolean))];
@@ -469,66 +520,6 @@ export default function WorkRadar() {
       setPtrY(0);
       setPtrState("idle");
     }
-  }
-
-  function CardItem(props) {
-    var thread=props.thread, i=props.i;
-    var isThread=thread.count>1;
-    var nextStato=STATUSES[(STATUSES.indexOf(thread.stato)+1)%STATUSES.length];
-    var dl=deadlineInfo(thread.deadline);
-    var swipe=useSwipe(
-      function(){updateJob(thread.id,{stato:"archiviato"});},
-      function(){updateJob(thread.id,{stato:"visto"});}
-    );
-    return (
-      <div className="card-wrap" style={{marginBottom:isThread?10:0}}>
-        <div className="swipe-hint left">✓</div>
-        <div className="swipe-hint right">👁</div>
-        <div
-          className={"card stato-"+thread.stato+(thread.pinned?" pinned":"")}
-          style={{animationDelay:i*18+"ms"}}
-          onClick={function(){openModal(thread);}}
-          onTouchStart={swipe.onTouchStart}
-          onTouchEnd={swipe.onTouchEnd}
-        >
-          {isThread&&<div className="thread-stack"/>}
-          {isThread&&thread.count>2&&<div className="thread-stack2"/>}
-          {isThread&&<div className="thread-badge">{thread.count} email</div>}
-          <div className="card-top">
-            <div className="card-meta">
-              {thread.box&&<span className="card-box" onClick={function(e){e.stopPropagation();setFilterBox(thread.box);}}>{shortBox(thread.box)}</span>}
-            </div>
-            <div className="card-right">
-              <div className="card-age">{age(thread.data_ricezione)}</div>
-              <button className={"pin-btn"+(thread.pinned?" on":"")} onClick={function(e){e.stopPropagation();updateJob(thread.id,{pinned:!thread.pinned});}} title={thread.pinned?"Rimuovi pin":"Fissa in cima"}>
-                {thread.pinned?"⭐":"☆"}
-              </button>
-            </div>
-          </div>
-          <div className="card-title">{thread.titolo||"Email"}</div>
-          <div className="card-from">{thread.fonte||""}</div>
-          {thread.tags&&thread.tags.length>0&&(
-            <div className="card-tags">
-              {thread.tags.slice(0,3).map(function(tag){
-                var c=tagColor(tag);
-                return <span key={tag} className="tag" style={{background:c.bg,borderColor:c.border,color:c.text}} onClick={function(e){e.stopPropagation();setFilterTag(filterTag===tag?"":tag);}}>{tag}</span>;
-              })}
-            </div>
-          )}
-          {thread.note&&<div className="card-note-preview">📝 {thread.note}</div>}
-          <div className="card-desc">{thread.descrizione||""}</div>
-          <div className="card-bottom">
-            <div className="card-bottom-left">
-              {thread.budget&&<span className="card-budget-badge">{thread.budget}</span>}
-              {dl&&<span className={"deadline-badge "+dl.cls}>⏰ {dl.label}</span>}
-            </div>
-            <span className={"pill "+thread.stato} onClick={function(e){e.stopPropagation();updateJob(thread.id,{stato:nextStato});}}>
-              <span className="pill-dot"/><span>{STATUS_LABEL[thread.stato]}</span>
-            </span>
-          </div>
-        </div>
-      </div>
-    );
   }
 
   return (
@@ -620,7 +611,7 @@ export default function WorkRadar() {
               <div className="empty"><div className="empty-icon">0</div><div className="empty-title">Nessun risultato</div></div>
             )}
             {filteredThreads.map(function(thread,i){
-              return <CardItem key={thread.id} thread={thread} i={i}/>;
+              return <CardItem key={thread.id} thread={thread} i={i} onOpen={openModal} onUpdate={updateJob} filterTag={filterTag} onFilterBox={setFilterBox} onFilterTag={setFilterTag}/>;
             })}
           </div>
         </div>
