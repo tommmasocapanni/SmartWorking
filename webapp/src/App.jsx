@@ -177,6 +177,7 @@ export default function WorkRadar() {
   var [search, setSearch] = useState("");
   var [selected, setSelected] = useState(null);
   var [expandedEmail, setExpandedEmail] = useState(null);
+  var [sortDesc, setSortDesc] = useState(true);
   var [showSetup, setShowSetup] = useState(false);
   var [setupTab, setSetupTab] = useState("server");
   var [serverOnline, setServerOnline] = useState(null);
@@ -310,7 +311,7 @@ export default function WorkRadar() {
     if (selected&&selected.id===id) setSelected(function(s){ return Object.assign({},s,{stato:stato}); });
   }
 
-  var threads = groupThreads(jobs);
+  var threads = groupThreads(jobs).sort(function(a,b){ var da=new Date(a.data_ricezione).getTime(); var db=new Date(b.data_ricezione).getTime(); return sortDesc ? db-da : da-db; });
   var filteredThreads = threads.filter(function(t) {
     if (filter!=="tutti"&&t.stato!==filter) return false;
     var q = search.toLowerCase();
@@ -371,6 +372,8 @@ export default function WorkRadar() {
               );
             })}
             <input className="search" placeholder="cerca..." value={search} onChange={function(e){ setSearch(e.target.value); }}/>
+            <div className="toolbar-sep"/>
+            <button className={"btn btn-outline"+(sortDesc?" on":"")} onClick={function(){ setSortDesc(function(v){ return !v; }); }} title="Ordina per data">{sortDesc?"↓ recenti":"↑ vecchi"}</button>
           </div>
 
           <div className="grid">
