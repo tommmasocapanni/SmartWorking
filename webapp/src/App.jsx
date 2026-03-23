@@ -340,6 +340,7 @@ export default function WorkRadar() {
   var [sortDesc,setSortDesc]=useState(true);
   var [autoSync,setAutoSync]=useState(0);
   var [lastSync,setLastSync]=useState(null);
+  var [lastUIDs,setLastUIDs]=useState({});
   var [cfg,setCfg]=useState({serverUrl:"",secret:"",host:"pop.securemail.pro",port:"993",email:"",password:""});
   var [cfgSaved,setCfgSaved]=useState(false);
   var autoSyncRef=useRef(null);
@@ -352,6 +353,7 @@ export default function WorkRadar() {
     var b=load("wr_v1_boxes");if(b)setSelectedBoxes(b);
     var as=load("wr_v1_autosync");if(as)setAutoSync(as);
     var ls=load("wr_v1_lastsync");if(ls)setLastSync(ls);
+    var lu=load("wr_v1_uids");if(lu)setLastUIDs(lu);
   },[]);
 
   useEffect(function(){if(jobs.length)save("wr_v1_jobs",jobs);},[jobs]);
@@ -382,10 +384,16 @@ export default function WorkRadar() {
     setSelectedBoxes(function(prev){
       var idx=prev.indexOf(box);
       if(idx!==-1){
-        // Removing box: delete its emails
+        // Removing box: delete its emails and reset its UID
         setJobs(function(js){
           var next=js.filter(function(j){return j.box!==box;});
           save("wr_v1_jobs",next);return next;
+        });
+        setLastUIDs(function(prev){
+          var next=Object.assign({},prev);
+          delete next[box];
+          save("wr_v1_uids",next);
+          return next;
         });
       }
       var next=idx===-1?prev.concat([box]):prev.filter(function(b){return b!==box;});
@@ -439,12 +447,21 @@ export default function WorkRadar() {
     if(!silent){setLoading(true);setError(null);setLoadMsg("Lettura email...");}
     try{
       var h={"Content-Type":"application/json"};if(cfg.secret)h["Authorization"]="Bearer "+cfg.secret;
-      var res=await fetch(cfg.serverUrl+"/sync",{method:"POST",headers:h,body:JSON.stringify({email:cfg.email,password:cfg.password,host:cfg.host,port:cfg.port,boxes:selectedBoxes})});
+      var res=await fetch(cfg.serverUrl+"/sync",{method:"POST",headers:h,body:JSON.stringify({email:cfg.email,password:cfg.password,host:cfg.host,port:cfg.port,boxes:selectedBoxes,lastUIDs:lastUIDs})});
       if(!res.ok)throw new Error("Server "+res.status);
       var data=await res.json();if(!data.ok)throw new Error(data.error||"Errore");
       merge(data.jobs||[]);
+      // Save updated UIDs for next incremental sync
+      if(data.lastUIDs){
+        setLastUIDs(function(prev){
+          var next=Object.assign({},prev,data.lastUIDs);
+          save("wr_v1_uids",next);
+          return next;
+        });
+      }
       var now=new Date().toISOString();setLastSync(now);save("wr_v1_lastsync",now);
-      if(!silent)setLoadMsg("+"+(data.jobs||[]).length+" email");
+      var count=data.jobs||[];
+      if(!silent)setLoadMsg(count.length>0?"+"+count.length+" nuove email":"Nessuna novità");
     }catch(e){if(!silent)setError("Errore: "+e.message);}
     if(!silent){setLoadMsg("");setLoading(false);}
   },[cfg,cfgSaved,selectedBoxes]);
@@ -773,7 +790,7 @@ export default function WorkRadar() {
             <div className="setup-actions">
               <button className="btn btn-outline" style={{color:"var(--red)",borderColor:"rgba(192,57,43,.3)",fontSize:11}} onClick={function(){
                 if(!window.confirm("Cancella tutti i dati salvati?")) return;
-                ["wr_v1_jobs","wr_v1_cfg","wr_v1_boxes","wr_v1_autosync","wr_v1_lastsync",
+                ["wr_v1_jobs","wr_v1_cfg","wr_v1_boxes","wr_v1_autosync","wr_v1_lastsync","wr_v1_uids",
                  "wr_j10","wr_c10","wr_b10","wr_as","wr_ls","wr_jobs9","wr_cfg6","wr_boxes4",
                  "wr_jobs8","wr_cfg5","wr_boxes3","wr_jobs7","wr_cfg4","wr_boxes2",
                  "wr_jobs6","wr_cfg3","wr_jobs5","wr_cfg2"].forEach(function(k){localStorage.removeItem(k);});
