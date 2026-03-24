@@ -5,10 +5,10 @@ const http = require("http");
 const https = require("https");
 const url = require("url");
 
-const PORT   = process.env.PORT || 3741;
+const PORT   = process.env.PORT   || 3741;
 const SECRET = process.env.WORKRADAR_SECRET || null;
 
-// ── VAPID (genera con: npx web-push generate-vapid-keys) ─────────────────────
+// ── VAPID ─────────────────────────────────────────────────────────────────────
 const VAPID_PUBLIC  = process.env.VAPID_PUBLIC_KEY  || "";
 const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY || "";
 const VAPID_MAIL    = process.env.VAPID_MAILTO      || "mailto:admin@workradar.app";
@@ -20,14 +20,13 @@ if (VAPID_PUBLIC && VAPID_PRIVATE) {
   console.warn("Web Push: VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY non impostate – push disabilitate.");
 }
 
-// In-memory store: { "box": { lastUID: 123, jobs: [...] } }
-global._store            = global._store            || {};
-global._cachedJobs       = global._cachedJobs       || [];
-global._lastSync         = global._lastSync         || null;
+global._store             = global._store             || {};
+global._cachedJobs        = global._cachedJobs        || [];
+global._lastSync          = global._lastSync          || null;
 global._pushSubscriptions = global._pushSubscriptions || [];
 
 function cors(res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Origin",  "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 }
@@ -40,11 +39,11 @@ function auth(req) {
 function connectImap(config) {
   return new Promise(function(resolve, reject) {
     var imap = new Imap({
-      user: config.email,
-      password: config.password,
-      host: config.host || "pop.securemail.pro",
-      port: parseInt(config.port) || 993,
-      tls: true,
+      user:       config.email,
+      password:   config.password,
+      host:       config.host || "pop.securemail.pro",
+      port:       parseInt(config.port) || 993,
+      tls:        true,
       tlsOptions: { rejectUnauthorized: false },
       connTimeout: 20000,
       authTimeout: 15000,
@@ -73,15 +72,6 @@ function getBoxes(imap) {
   });
 }
 
-function getBoxInfo(imap, boxName) {
-  return new Promise(function(resolve) {
-    imap.openBox(boxName, true, function(err, box) {
-      if (err) return resolve(null);
-      resolve({ total: box.messages.total, uidnext: box.uidnext });
-    });
-  });
-}
-
 function cleanText(text) {
   if (!text) return "";
   return text
@@ -96,22 +86,18 @@ function cleanText(text) {
     .slice(0, 600);
 }
 
-// Fetch only emails newer than lastUID
+// ── fetchNewFromBox – versione corretta con Promise per ogni messaggio ─────────
 function fetchNewFromBox(imap, boxName, lastUID) {
   return new Promise(function(resolve) {
     imap.openBox(boxName, true, function(err, box) {
-      if (err) return resolve([]);
+      if (err) return resolve({ emails: [], maxUID: lastUID || 0 });
       var total = box.messages.total;
-      if (total === 0) return resolve([]);
+      if (total === 0) return resolve({ emails: [], maxUID: lastUID || 0 });
 
-      var emails = [];
       var fetchRange;
-
       if (lastUID && lastUID > 0) {
-        // Only fetch emails with UID > lastUID
         fetchRange = (lastUID + 1) + ":*";
       } else {
-        // First time: fetch last 30
         var start = Math.max(1, total - 29);
         fetchRange = start + ":*";
       }
@@ -120,46 +106,62 @@ function fetchNewFromBox(imap, boxName, lastUID) {
       try {
         fetcher = imap.fetch(fetchRange, { bodies: "", uid: true });
       } catch(e) {
-        return resolve([]);
+        return resolve({ emails: [], maxUID: lastUID || 0 });
       }
 
-      var maxUID = lastUID || 0;
+      var maxUID    = lastUID || 0;
+      var promises  = [];   // una Promise per ogni messaggio
 
       fetcher.on("message", function(msg) {
         var uid = null;
-        msg.on("attributes", function(attrs) { uid = attrs.uid; if (uid > maxUID) maxUID = uid; });
-        msg.on("body", function(stream) {
-          simpleParser(stream, function(err, parsed) {
-            if (err) return;
-            var mid = parsed.messageId || String(Date.now() + Math.random());
-            var rawText = parsed.text || "";
-            emails.push({
-              id: "reg_" + Buffer.from(mid).toString("base64").slice(0, 16),
-              titolo: parsed.subject || "(nessun oggetto)",
-              descrizione: cleanText(rawText),
-              budget: null, scadenza: null,
-              fonte: parsed.from ? parsed.from.text : "sconosciuto",
-              fonte_tipo: "register",
-              data_ricezione: parsed.date ? parsed.date.toISOString() : new Date().toISOString(),
-              email_originale: cleanText(rawText).slice(0, 300),
-              box: boxName,
-              _uid: uid
+        msg.on("attributes", function(attrs) {
+          uid = attrs.uid;
+          if (uid > maxUID) maxUID = uid;
+        });
+
+        // Raccogli ogni messaggio in una Promise separata
+        var p = new Promise(function(res2) {
+          msg.on("body", function(stream) {
+            simpleParser(stream, function(parseErr, parsed) {
+              if (parseErr) return res2(null);
+              var mid    = parsed.messageId || String(Date.now() + Math.random());
+              var rawText = parsed.text || "";
+              res2({
+                id:              "reg_" + Buffer.from(mid).toString("base64").slice(0, 16),
+                titolo:          parsed.subject || "(nessun oggetto)",
+                descrizione:     cleanText(rawText),
+                budget:          null,
+                scadenza:        null,
+                fonte:           parsed.from ? parsed.from.text : "sconosciuto",
+                fonte_tipo:      "register",
+                data_ricezione:  parsed.date ? parsed.date.toISOString() : new Date().toISOString(),
+                email_originale: cleanText(rawText).slice(0, 300),
+                box:             boxName,
+                _uid:            uid,
+              });
             });
           });
         });
+        promises.push(p);
       });
 
-      fetcher.once("error", function() { resolve({ emails: emails, maxUID: maxUID }); });
+      fetcher.once("error", function() {
+        Promise.all(promises).then(function(results) {
+          resolve({ emails: results.filter(Boolean), maxUID: maxUID });
+        });
+      });
+
       fetcher.once("end", function() {
-        // Small delay to let simpleParser finish
-        setTimeout(function() {
-          resolve({ emails: emails, maxUID: maxUID });
-        }, 500);
+        // Aspetta che TUTTI i simpleParser abbiano finito
+        Promise.all(promises).then(function(results) {
+          resolve({ emails: results.filter(Boolean), maxUID: maxUID });
+        });
       });
     });
   });
 }
 
+// ── HTTP Server ───────────────────────────────────────────────────────────────
 var server = http.createServer(async function(req, res) {
   cors(res);
   if (req.method === "OPTIONS") { res.writeHead(204); res.end(); return; }
@@ -167,10 +169,10 @@ var server = http.createServer(async function(req, res) {
 
   if (pathname === "/health") {
     res.writeHead(200, { "Content-Type": "application/json" });
-    return res.end(JSON.stringify({ ok: true, version: "3.0.0" }));
+    return res.end(JSON.stringify({ ok: true, version: "3.1.0" }));
   }
 
-  // GET /push/vapidPublicKey – pubblico, non richiede auth
+  // Pubblico – non richiede auth
   if (pathname === "/push/vapidPublicKey" && req.method === "GET") {
     res.writeHead(200, { "Content-Type": "application/json" });
     return res.end(JSON.stringify({ key: VAPID_PUBLIC || "" }));
@@ -189,12 +191,11 @@ var server = http.createServer(async function(req, res) {
     });
   }
 
-  // POST /push/subscribe – salva subscription dal browser
+  // POST /push/subscribe
   if (pathname === "/push/subscribe" && req.method === "POST") {
-    cors(res);
-    var body0 = await readBody(req);
+    var b0 = await readBody(req);
     try {
-      var sub = JSON.parse(body0);
+      var sub = JSON.parse(b0);
       var exists = global._pushSubscriptions.some(function(s){ return s.endpoint === sub.endpoint; });
       if (!exists) {
         global._pushSubscriptions.push(sub);
@@ -203,17 +204,15 @@ var server = http.createServer(async function(req, res) {
       res.writeHead(201, { "Content-Type": "application/json" });
       return res.end(JSON.stringify({ ok: true }));
     } catch(e) {
-      res.writeHead(400, { "Content-Type": "application/json" });
-      return res.end(JSON.stringify({ error: e.message }));
+      res.writeHead(400); return res.end(JSON.stringify({ error: e.message }));
     }
   }
 
-  // DELETE /push/unsubscribe – rimuove subscription
+  // POST /push/unsubscribe
   if (pathname === "/push/unsubscribe" && req.method === "POST") {
-    cors(res);
-    var body01 = await readBody(req);
+    var b01 = await readBody(req);
     try {
-      var unsub = JSON.parse(body01);
+      var unsub = JSON.parse(b01);
       global._pushSubscriptions = global._pushSubscriptions.filter(function(s){ return s.endpoint !== unsub.endpoint; });
       res.writeHead(200, { "Content-Type": "application/json" });
       return res.end(JSON.stringify({ ok: true }));
@@ -222,7 +221,7 @@ var server = http.createServer(async function(req, res) {
     }
   }
 
-  // GET BOXES LIST
+  // POST /boxes
   if (pathname === "/boxes" && req.method === "POST") {
     var b = await readBody(req);
     try {
@@ -238,7 +237,7 @@ var server = http.createServer(async function(req, res) {
     }
   }
 
-  // SYNC - incremental
+  // POST /sync
   if (pathname === "/sync" && req.method === "POST") {
     var b2 = await readBody(req);
     try {
@@ -248,22 +247,21 @@ var server = http.createServer(async function(req, res) {
         return res.end(JSON.stringify({ error: "email e password richiesti" }));
       }
 
-      var selectedBoxes = p2.boxes || ["INBOX"];
-      // lastUIDs: { "INBOX": 123, "INBOX.addlance": 456 }
-      var lastUIDs = p2.lastUIDs || {};
+      var selectedBoxes = p2.boxes   || ["INBOX"];
+      var lastUIDs      = p2.lastUIDs || {};
 
       console.log("[" + new Date().toISOString() + "] sync -> " + p2.email);
 
-      var imap2 = await connectImap(p2);
-      var allEmails = [];
+      var imap2       = await connectImap(p2);
+      var allEmails   = [];
       var newLastUIDs = {};
 
       for (var i = 0; i < selectedBoxes.length; i++) {
-        var box = selectedBoxes[i];
+        var box     = selectedBoxes[i];
         var lastUID = lastUIDs[box] || 0;
-        var result = await fetchNewFromBox(imap2, box, lastUID);
-        var emails = result.emails || [];
-        var maxUID = result.maxUID || lastUID;
+        var result  = await fetchNewFromBox(imap2, box, lastUID);
+        var emails  = result.emails || [];
+        var maxUID  = result.maxUID || lastUID;
         newLastUIDs[box] = maxUID;
         if (emails.length > 0) {
           console.log("  " + box + ": " + emails.length + " nuove (lastUID:" + lastUID + " -> " + maxUID + ")");
@@ -273,42 +271,39 @@ var server = http.createServer(async function(req, res) {
 
       imap2.end();
 
-      // Update global cache
       global._cachedJobs = (global._cachedJobs || []).concat(allEmails);
-      global._lastSync = new Date().toISOString();
+      global._lastSync   = new Date().toISOString();
 
       console.log("  Totale nuove: " + allEmails.length);
 
-      // ── Invia notifica push se ci sono email nuove ─────────────────────────
+      // ── Push notification ──────────────────────────────────────────────────
       if (allEmails.length > 0 && VAPID_PUBLIC && VAPID_PRIVATE && global._pushSubscriptions.length > 0) {
-        var n = allEmails.length;
+        var n       = allEmails.length;
         var payload = JSON.stringify({
-          title: "WorkRadar – " + n + " nuov" + (n===1?"a":"e") + " email",
-          body:  allEmails.slice(0,3).map(function(e){ return e.titolo||"(nessun oggetto)"; }).join(", "),
-          url:   "/"
+          title: "WorkRadar – " + n + " nuov" + (n === 1 ? "a" : "e") + " email",
+          body:  allEmails.slice(0, 3).map(function(e){ return e.titolo || "(nessun oggetto)"; }).join(", "),
+          url:   "/",
         });
         var toRemove = [];
         for (var pi = 0; pi < global._pushSubscriptions.length; pi++) {
           try {
             await webpush.sendNotification(global._pushSubscriptions[pi], payload);
           } catch(pe) {
-            // 410 = subscription scaduta/revocata → rimuovila
             if (pe.statusCode === 410 || pe.statusCode === 404) toRemove.push(pi);
           }
         }
-        // Rimuovi subscription non più valide (in ordine inverso)
         for (var ri = toRemove.length - 1; ri >= 0; ri--) {
           global._pushSubscriptions.splice(toRemove[ri], 1);
         }
-        console.log("  Push inviate a " + (global._pushSubscriptions.length) + " dispositivi");
+        console.log("  Push inviate a " + global._pushSubscriptions.length + " dispositivi");
       }
 
       res.writeHead(200, { "Content-Type": "application/json" });
       return res.end(JSON.stringify({
-        ok: true,
-        total: allEmails.length,
-        jobs: allEmails,
-        lastUIDs: newLastUIDs // send back to client to store
+        ok:       true,
+        total:    allEmails.length,
+        jobs:     allEmails,
+        lastUIDs: newLastUIDs,
       }));
     } catch(e) {
       console.error("Errore sync:", e.message);
@@ -317,22 +312,22 @@ var server = http.createServer(async function(req, res) {
     }
   }
 
-  // WIDGET endpoint
+  // GET /widget
   if (pathname === "/widget" && req.method === "GET") {
-    var jobs = global._cachedJobs || [];
+    var jobs  = global._cachedJobs || [];
     var nuovi = jobs.filter(function(j){ return j.stato === "nuovo"; });
     var summary = nuovi.slice(0, 5).map(function(j){
-      return { id:j.id, titolo:(j.titolo||"").slice(0,60), fonte:(j.fonte||"").slice(0,30), box:(j.box||"").replace("INBOX.",""), data:j.data_ricezione };
+      return { id: j.id, titolo: (j.titolo||"").slice(0,60), fonte: (j.fonte||"").slice(0,30), box: (j.box||"").replace("INBOX.",""), data: j.data_ricezione };
     });
     res.writeHead(200, { "Content-Type": "application/json" });
-    return res.end(JSON.stringify({ ok:true, nuovi:nuovi.length, totale:jobs.length, items:summary, lastUpdate:global._lastSync }));
+    return res.end(JSON.stringify({ ok: true, nuovi: nuovi.length, totale: jobs.length, items: summary, lastUpdate: global._lastSync }));
   }
 
   res.writeHead(404); res.end("Not found");
 });
 
 server.listen(PORT, function() {
-  console.log("WorkRadar Server v3.0 - Porta: " + PORT);
+  console.log("WorkRadar Server v3.1 - Porta: " + PORT);
   console.log("Auth: " + (SECRET ? "attiva" : "nessuna"));
   console.log("Sync: incrementale (solo email nuove)");
 });
