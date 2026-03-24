@@ -170,6 +170,38 @@ function fetchNewFromBox(imap, boxName, lastUID) {
   });
 }
 
+// ── Invia push per ogni email nuova ──────────────────────────────────────────
+async function sendPushNotifications(newEmails) {
+  if (!newEmails.length || !VAPID_PUBLIC || !VAPID_PRIVATE || !global._pushSubscriptions.length) return;
+
+  var toRemove = [];
+
+  for (var ei = 0; ei < newEmails.length; ei++) {
+    var email   = newEmails[ei];
+    var payload = JSON.stringify({
+      title: email.titolo || "(nessun oggetto)",
+      body:  email.fonte  || "mittente sconosciuto",
+      url:   "/",
+    });
+
+    for (var pi = 0; pi < global._pushSubscriptions.length; pi++) {
+      try {
+        await webpush.sendNotification(global._pushSubscriptions[pi], payload);
+      } catch(pe) {
+        if ((pe.statusCode === 410 || pe.statusCode === 404) && !toRemove.includes(pi)) {
+          toRemove.push(pi);
+        }
+      }
+    }
+  }
+
+  for (var ri = toRemove.length - 1; ri >= 0; ri--) {
+    global._pushSubscriptions.splice(toRemove[ri], 1);
+  }
+
+  console.log("  Push inviate (" + newEmails.length + " notifiche) a " + global._pushSubscriptions.length + " dispositivi");
+}
+
 var server = http.createServer(async function(req, res) {
   cors(res);
   if (req.method === "OPTIONS") { res.writeHead(204); res.end(); return; }
@@ -177,7 +209,7 @@ var server = http.createServer(async function(req, res) {
 
   if (pathname === "/health") {
     res.writeHead(200, { "Content-Type": "application/json" });
-    return res.end(JSON.stringify({ ok: true, version: "3.1.0" }));
+    return res.end(JSON.stringify({ ok: true, version: "3.2.0" }));
   }
 
   // Pubblico – non richiede auth
@@ -288,27 +320,7 @@ var server = http.createServer(async function(req, res) {
 
       console.log("  Totale nuove: " + allEmails.length);
 
-      // ── Push notification ──────────────────────────────────────────────────
-      if (allEmails.length > 0 && VAPID_PUBLIC && VAPID_PRIVATE && global._pushSubscriptions.length > 0) {
-        var n       = allEmails.length;
-        var payload = JSON.stringify({
-          title: "WorkRadar – " + n + " nuov" + (n === 1 ? "a" : "e") + " email",
-          body:  allEmails.slice(0, 3).map(function(e){ return e.titolo || "(nessun oggetto)"; }).join(", "),
-          url:   "/",
-        });
-        var toRemove = [];
-        for (var pi = 0; pi < global._pushSubscriptions.length; pi++) {
-          try {
-            await webpush.sendNotification(global._pushSubscriptions[pi], payload);
-          } catch(pe) {
-            if (pe.statusCode === 410 || pe.statusCode === 404) toRemove.push(pi);
-          }
-        }
-        for (var ri = toRemove.length - 1; ri >= 0; ri--) {
-          global._pushSubscriptions.splice(toRemove[ri], 1);
-        }
-        console.log("  Push inviate a " + global._pushSubscriptions.length + " dispositivi");
-      }
+      await sendPushNotifications(allEmails);
 
       res.writeHead(200, { "Content-Type": "application/json" });
       return res.end(JSON.stringify({
@@ -373,34 +385,15 @@ async function serverAutoSync() {
 
     console.log("[auto-sync] totale nuove: " + allNew.length);
 
-    // Invia push se ci sono email nuove
-    if (allNew.length > 0 && VAPID_PUBLIC && VAPID_PRIVATE && global._pushSubscriptions.length > 0) {
-      var n       = allNew.length;
-      var payload = JSON.stringify({
-        title: "WorkRadar – " + n + " nuov" + (n === 1 ? "a" : "e") + " email",
-        body:  allNew.slice(0, 3).map(function(e){ return e.titolo || "(nessun oggetto)"; }).join(", "),
-        url:   "/",
-      });
-      var toRemove = [];
-      for (var pi = 0; pi < global._pushSubscriptions.length; pi++) {
-        try {
-          await webpush.sendNotification(global._pushSubscriptions[pi], payload);
-        } catch(pe) {
-          if (pe.statusCode === 410 || pe.statusCode === 404) toRemove.push(pi);
-        }
-      }
-      for (var ri = toRemove.length - 1; ri >= 0; ri--) {
-        global._pushSubscriptions.splice(toRemove[ri], 1);
-      }
-      console.log("[auto-sync] push inviate a " + global._pushSubscriptions.length + " dispositivi");
-    }
+    await sendPushNotifications(allNew);
+
   } catch(e) {
     console.error("[auto-sync] errore:", e.message);
   }
 }
 
 server.listen(PORT, function() {
-  console.log("WorkRadar Server v3.1 - Porta: " + PORT);
+  console.log("WorkRadar Server v3.2 - Porta: " + PORT);
   console.log("Auth: " + (SECRET ? "attiva" : "nessuna"));
   console.log("Sync: incrementale (solo email nuove)");
   console.log("Auto-sync server: ogni " + (AUTO_SYNC_INTERVAL/60000) + " minuti");
