@@ -5,7 +5,7 @@ const http = require("http");
 const https = require("https");
 const url = require("url");
 
-const PORT   = process.env.PORT   || 3741;
+const PORT   = process.env.PORT || 3741;
 const SECRET = process.env.WORKRADAR_SECRET || null;
 
 // ── VAPID ─────────────────────────────────────────────────────────────────────
@@ -39,11 +39,11 @@ function auth(req) {
 function connectImap(config) {
   return new Promise(function(resolve, reject) {
     var imap = new Imap({
-      user:       config.email,
-      password:   config.password,
-      host:       config.host || "pop.securemail.pro",
-      port:       parseInt(config.port) || 993,
-      tls:        true,
+      user: config.email,
+      password: config.password,
+      host: config.host || "pop.securemail.pro",
+      port: parseInt(config.port) || 993,
+      tls: true,
       tlsOptions: { rejectUnauthorized: false },
       connTimeout: 20000,
       authTimeout: 15000,
@@ -72,6 +72,15 @@ function getBoxes(imap) {
   });
 }
 
+function getBoxInfo(imap, boxName) {
+  return new Promise(function(resolve) {
+    imap.openBox(boxName, true, function(err, box) {
+      if (err) return resolve(null);
+      resolve({ total: box.messages.total, uidnext: box.uidnext });
+    });
+  });
+}
+
 function cleanText(text) {
   if (!text) return "";
   return text
@@ -86,7 +95,7 @@ function cleanText(text) {
     .slice(0, 600);
 }
 
-// ── fetchNewFromBox – versione corretta con Promise per ogni messaggio ─────────
+// ── fetchNewFromBox – Promise.all per attendere tutti i simpleParser ───────────
 function fetchNewFromBox(imap, boxName, lastUID) {
   return new Promise(function(resolve) {
     imap.openBox(boxName, true, function(err, box) {
@@ -109,8 +118,8 @@ function fetchNewFromBox(imap, boxName, lastUID) {
         return resolve({ emails: [], maxUID: lastUID || 0 });
       }
 
-      var maxUID    = lastUID || 0;
-      var promises  = [];   // una Promise per ogni messaggio
+      var maxUID   = lastUID || 0;
+      var promises = [];
 
       fetcher.on("message", function(msg) {
         var uid = null;
@@ -119,12 +128,11 @@ function fetchNewFromBox(imap, boxName, lastUID) {
           if (uid > maxUID) maxUID = uid;
         });
 
-        // Raccogli ogni messaggio in una Promise separata
         var p = new Promise(function(res2) {
           msg.on("body", function(stream) {
             simpleParser(stream, function(parseErr, parsed) {
               if (parseErr) return res2(null);
-              var mid    = parsed.messageId || String(Date.now() + Math.random());
+              var mid     = parsed.messageId || String(Date.now() + Math.random());
               var rawText = parsed.text || "";
               res2({
                 id:              "reg_" + Buffer.from(mid).toString("base64").slice(0, 16),
@@ -152,7 +160,6 @@ function fetchNewFromBox(imap, boxName, lastUID) {
       });
 
       fetcher.once("end", function() {
-        // Aspetta che TUTTI i simpleParser abbiano finito
         Promise.all(promises).then(function(results) {
           resolve({ emails: results.filter(Boolean), maxUID: maxUID });
         });
@@ -161,7 +168,6 @@ function fetchNewFromBox(imap, boxName, lastUID) {
   });
 }
 
-// ── HTTP Server ───────────────────────────────────────────────────────────────
 var server = http.createServer(async function(req, res) {
   cors(res);
   if (req.method === "OPTIONS") { res.writeHead(204); res.end(); return; }
@@ -221,7 +227,7 @@ var server = http.createServer(async function(req, res) {
     }
   }
 
-  // POST /boxes
+  // GET BOXES LIST
   if (pathname === "/boxes" && req.method === "POST") {
     var b = await readBody(req);
     try {
@@ -237,7 +243,7 @@ var server = http.createServer(async function(req, res) {
     }
   }
 
-  // POST /sync
+  // SYNC - incrementale
   if (pathname === "/sync" && req.method === "POST") {
     var b2 = await readBody(req);
     try {
@@ -247,7 +253,7 @@ var server = http.createServer(async function(req, res) {
         return res.end(JSON.stringify({ error: "email e password richiesti" }));
       }
 
-      var selectedBoxes = p2.boxes   || ["INBOX"];
+      var selectedBoxes = p2.boxes    || ["INBOX"];
       var lastUIDs      = p2.lastUIDs || {};
 
       console.log("[" + new Date().toISOString() + "] sync -> " + p2.email);
@@ -312,15 +318,15 @@ var server = http.createServer(async function(req, res) {
     }
   }
 
-  // GET /widget
+  // WIDGET endpoint
   if (pathname === "/widget" && req.method === "GET") {
     var jobs  = global._cachedJobs || [];
     var nuovi = jobs.filter(function(j){ return j.stato === "nuovo"; });
     var summary = nuovi.slice(0, 5).map(function(j){
-      return { id: j.id, titolo: (j.titolo||"").slice(0,60), fonte: (j.fonte||"").slice(0,30), box: (j.box||"").replace("INBOX.",""), data: j.data_ricezione };
+      return { id:j.id, titolo:(j.titolo||"").slice(0,60), fonte:(j.fonte||"").slice(0,30), box:(j.box||"").replace("INBOX.",""), data:j.data_ricezione };
     });
     res.writeHead(200, { "Content-Type": "application/json" });
-    return res.end(JSON.stringify({ ok: true, nuovi: nuovi.length, totale: jobs.length, items: summary, lastUpdate: global._lastSync }));
+    return res.end(JSON.stringify({ ok:true, nuovi:nuovi.length, totale:jobs.length, items:summary, lastUpdate:global._lastSync }));
   }
 
   res.writeHead(404); res.end("Not found");
