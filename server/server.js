@@ -24,6 +24,8 @@ global._store             = global._store             || {};
 global._cachedJobs        = global._cachedJobs        || [];
 global._lastSync          = global._lastSync          || null;
 global._pushSubscriptions = global._pushSubscriptions || [];
+global._imapConfig        = global._imapConfig        || null;  // salvato al primo sync
+global._lastUIDs          = global._lastUIDs          || {};    // UIDs per auto-sync
 
 function cors(res) {
   res.setHeader("Access-Control-Allow-Origin",  "*");
@@ -258,6 +260,9 @@ var server = http.createServer(async function(req, res) {
 
       console.log("[" + new Date().toISOString() + "] sync -> " + p2.email);
 
+      // Salva config per auto-sync
+      global._imapConfig = { email: p2.email, password: p2.password, host: p2.host, port: p2.port, boxes: selectedBoxes };
+
       var imap2       = await connectImap(p2);
       var allEmails   = [];
       var newLastUIDs = {};
@@ -279,6 +284,7 @@ var server = http.createServer(async function(req, res) {
 
       global._cachedJobs = (global._cachedJobs || []).concat(allEmails);
       global._lastSync   = new Date().toISOString();
+      global._lastUIDs   = Object.assign({}, global._lastUIDs, newLastUIDs);
 
       console.log("  Totale nuove: " + allEmails.length);
 
@@ -332,8 +338,71 @@ var server = http.createServer(async function(req, res) {
   res.writeHead(404); res.end("Not found");
 });
 
+// ── Auto-sync lato server ogni 15 minuti ──────────────────────────────────────
+var AUTO_SYNC_INTERVAL = parseInt(process.env.AUTO_SYNC_MINUTES || "15") * 60 * 1000;
+
+async function serverAutoSync() {
+  if (!global._imapConfig) {
+    console.log("[auto-sync] nessuna config salvata, skip.");
+    return;
+  }
+  console.log("[auto-sync] avvio -> " + global._imapConfig.email);
+  try {
+    var cfg      = global._imapConfig;
+    var boxes    = cfg.boxes || ["INBOX"];
+    var imap     = await connectImap(cfg);
+    var allNew   = [];
+    var newUIDs  = {};
+
+    for (var i = 0; i < boxes.length; i++) {
+      var box    = boxes[i];
+      var last   = global._lastUIDs[box] || 0;
+      var result = await fetchNewFromBox(imap, box, last);
+      var emails = result.emails || [];
+      newUIDs[box] = result.maxUID || last;
+      if (emails.length > 0) {
+        console.log("  [auto-sync] " + box + ": " + emails.length + " nuove");
+      }
+      allNew = allNew.concat(emails);
+    }
+
+    imap.end();
+    global._cachedJobs = (global._cachedJobs || []).concat(allNew);
+    global._lastSync   = new Date().toISOString();
+    global._lastUIDs   = Object.assign({}, global._lastUIDs, newUIDs);
+
+    console.log("[auto-sync] totale nuove: " + allNew.length);
+
+    // Invia push se ci sono email nuove
+    if (allNew.length > 0 && VAPID_PUBLIC && VAPID_PRIVATE && global._pushSubscriptions.length > 0) {
+      var n       = allNew.length;
+      var payload = JSON.stringify({
+        title: "WorkRadar – " + n + " nuov" + (n === 1 ? "a" : "e") + " email",
+        body:  allNew.slice(0, 3).map(function(e){ return e.titolo || "(nessun oggetto)"; }).join(", "),
+        url:   "/",
+      });
+      var toRemove = [];
+      for (var pi = 0; pi < global._pushSubscriptions.length; pi++) {
+        try {
+          await webpush.sendNotification(global._pushSubscriptions[pi], payload);
+        } catch(pe) {
+          if (pe.statusCode === 410 || pe.statusCode === 404) toRemove.push(pi);
+        }
+      }
+      for (var ri = toRemove.length - 1; ri >= 0; ri--) {
+        global._pushSubscriptions.splice(toRemove[ri], 1);
+      }
+      console.log("[auto-sync] push inviate a " + global._pushSubscriptions.length + " dispositivi");
+    }
+  } catch(e) {
+    console.error("[auto-sync] errore:", e.message);
+  }
+}
+
 server.listen(PORT, function() {
   console.log("WorkRadar Server v3.1 - Porta: " + PORT);
   console.log("Auth: " + (SECRET ? "attiva" : "nessuna"));
   console.log("Sync: incrementale (solo email nuove)");
+  console.log("Auto-sync server: ogni " + (AUTO_SYNC_INTERVAL/60000) + " minuti");
+  setInterval(serverAutoSync, AUTO_SYNC_INTERVAL);
 });
