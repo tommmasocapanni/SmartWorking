@@ -575,7 +575,8 @@ export default function App() {
     if(!("serviceWorker" in navigator)) return;
     setPushStatus("loading");
     try {
-      const reg = await navigator.serviceWorker.getRegistration("/sw.js");
+      const reg = await navigator.serviceWorker.register("./sw.js");
+
       if(reg) {
         const sub = await reg.pushManager.getSubscription();
         if(sub) {
