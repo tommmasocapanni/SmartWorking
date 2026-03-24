@@ -1,39 +1,29 @@
-// WorkRadar Service Worker – Push Notifications
-// Versione 1.0
+self.addEventListener('install', function() { self.skipWaiting(); });
+self.addEventListener('activate', function(e) { e.waitUntil(self.clients.claim()); });
 
-self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
-
-// ── Ricezione notifica push ───────────────────────────────────────────────────
-self.addEventListener('push', (event) => {
-  let data = {};
-  try { data = event.data ? event.data.json() : {}; } catch {}
-
-  const title   = data.title || 'WorkRadar';
-  const options = {
-    body:    data.body  || 'Hai ricevuto nuove email.',
-    icon:    '/icon-192.png',
-    badge:   '/icon-192.png',
-    tag:     'workradar-push',          // sostituisce notifiche precedenti
-    renotify: true,
-    data: { url: data.url || '/' },
-  };
-
-  event.waitUntil(self.registration.showNotification(title, options));
+self.addEventListener('push', function(event) {
+  var data = {};
+  try { data = event.data ? event.data.json() : {}; } catch(e) {}
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'WorkRadar', {
+      body:      data.body || 'Hai ricevuto nuove email.',
+      icon:      '/icon-192.png',
+      badge:     '/icon-192.png',
+      tag:       'workradar-push',
+      renotify:  true,
+      data:      { url: data.url || '/' },
+    })
+  );
 });
 
-// ── Click sulla notifica ──────────────────────────────────────────────────────
-self.addEventListener('notificationclick', (event) => {
+self.addEventListener('notificationclick', function(event) {
   event.notification.close();
-  const target = event.notification.data?.url || '/';
-
+  var target = (event.notification.data && event.notification.data.url) || '/';
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // Se c'è già una finestra aperta, portala in primo piano
-      for (const client of clientList) {
-        if ('focus' in client) return client.focus();
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(list) {
+      for (var i = 0; i < list.length; i++) {
+        if ('focus' in list[i]) return list[i].focus();
       }
-      // Altrimenti apri una nuova scheda
       if (self.clients.openWindow) return self.clients.openWindow(target);
     })
   );
