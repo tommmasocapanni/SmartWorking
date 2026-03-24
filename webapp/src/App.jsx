@@ -224,9 +224,21 @@ function groupThreads(jobs) {
     if(!groups[key]){groups[key]=[];order.push(key);}
     groups[key].push(job);
   });
+  // Priorità stato: applicato > nuovo > visto > archiviato
+  var STATO_PRIORITY={applicato:3,nuovo:2,visto:1,archiviato:0};
   return order.map(function(key) {
-    var emails=groups[key],latest=emails[0];
-    return {id:latest.id,titolo:latest.titolo,descrizione:latest.descrizione,fonte:latest.fonte,box:latest.box,data_ricezione:latest.data_ricezione,stato:latest.stato,note:latest.note||"",budget:latest.budget||"",tags:latest.tags||[],deadline:latest.deadline||"",pinned:latest.pinned||false,count:emails.length,emails:emails};
+    var emails=groups[key];
+    // Prendi sempre la email più recente per i metadati, indipendentemente dall'ordine dell'array
+    var latest=emails.reduce(function(best,e){
+      return new Date(e.data_ricezione)>new Date(best.data_ricezione)?e:best;
+    },emails[0]);
+    // Prendi lo stato più importante tra tutte le email del thread
+    var bestStato=emails.reduce(function(best,e){
+      var p=STATO_PRIORITY[e.stato]!=null?STATO_PRIORITY[e.stato]:-1;
+      var bp=STATO_PRIORITY[best]!=null?STATO_PRIORITY[best]:-1;
+      return p>bp?e.stato:best;
+    },emails[0].stato||"nuovo");
+    return {id:latest.id,titolo:latest.titolo,descrizione:latest.descrizione,fonte:latest.fonte,box:latest.box,data_ricezione:latest.data_ricezione,stato:bestStato,note:latest.note||"",budget:latest.budget||"",tags:latest.tags||[],deadline:latest.deadline||"",pinned:latest.pinned||false,count:emails.length,emails:emails};
   });
 }
 function deadlineInfo(deadline) {
@@ -529,7 +541,22 @@ export default function WorkRadar() {
   },[autoSync]);
 
   function updateJob(id,patch){
-    setJobs(function(prev){var next=prev.map(function(j){return j.id===id?Object.assign({},j,patch):j;});save("wr_v1_jobs",next);return next;});
+    setJobs(function(prev){
+      // Se si aggiorna lo stato, propagalo a tutte le email dello stesso thread (stesso titolo+box)
+      var baseJob=prev.find(function(j){return j.id===id;});
+      var next=prev.map(function(j){
+        if(j.id===id) return Object.assign({},j,patch);
+        // Propaga stato e pinned a tutte le email del thread
+        if(patch.stato!==undefined&&baseJob&&threadKey(j.titolo,j.box)===threadKey(baseJob.titolo,baseJob.box)){
+          return Object.assign({},j,{stato:patch.stato});
+        }
+        if(patch.pinned!==undefined&&baseJob&&threadKey(j.titolo,j.box)===threadKey(baseJob.titolo,baseJob.box)){
+          return Object.assign({},j,{pinned:patch.pinned});
+        }
+        return j;
+      });
+      save("wr_v1_jobs",next);return next;
+    });
     if(selected&&selected.id===id)setSelected(function(s){return Object.assign({},s,patch);});
   }
 
