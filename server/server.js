@@ -1,16 +1,30 @@
 const Imap = require("imap");
 const { simpleParser } = require("mailparser");
+const webpush = require("web-push");
 const http = require("http");
 const https = require("https");
 const url = require("url");
 
-const PORT = process.env.PORT || 3741;
+const PORT   = process.env.PORT || 3741;
 const SECRET = process.env.WORKRADAR_SECRET || null;
 
+// ── VAPID (genera con: npx web-push generate-vapid-keys) ─────────────────────
+const VAPID_PUBLIC  = process.env.VAPID_PUBLIC_KEY  || "";
+const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY || "";
+const VAPID_MAIL    = process.env.VAPID_MAILTO      || "mailto:admin@workradar.app";
+
+if (VAPID_PUBLIC && VAPID_PRIVATE) {
+  webpush.setVapidDetails(VAPID_MAIL, VAPID_PUBLIC, VAPID_PRIVATE);
+  console.log("Web Push: VAPID configurato ✓");
+} else {
+  console.warn("Web Push: VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY non impostate – push disabilitate.");
+}
+
 // In-memory store: { "box": { lastUID: 123, jobs: [...] } }
-global._store = global._store || {};
-global._cachedJobs = global._cachedJobs || [];
-global._lastSync = global._lastSync || null;
+global._store            = global._store            || {};
+global._cachedJobs       = global._cachedJobs       || [];
+global._lastSync         = global._lastSync         || null;
+global._pushSubscriptions = global._pushSubscriptions || [];
 
 function cors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -169,6 +183,46 @@ var server = http.createServer(async function(req, res) {
     });
   }
 
+  // GET /push/vapidPublicKey – la webapp lo usa per subscribe
+  if (pathname === "/push/vapidPublicKey" && req.method === "GET") {
+    cors(res);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ key: VAPID_PUBLIC || "" }));
+  }
+
+  // POST /push/subscribe – salva subscription dal browser
+  if (pathname === "/push/subscribe" && req.method === "POST") {
+    cors(res);
+    var body0 = await readBody(req);
+    try {
+      var sub = JSON.parse(body0);
+      var exists = global._pushSubscriptions.some(function(s){ return s.endpoint === sub.endpoint; });
+      if (!exists) {
+        global._pushSubscriptions.push(sub);
+        console.log("[push] Nuova subscription, totale:", global._pushSubscriptions.length);
+      }
+      res.writeHead(201, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ ok: true }));
+    } catch(e) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: e.message }));
+    }
+  }
+
+  // DELETE /push/unsubscribe – rimuove subscription
+  if (pathname === "/push/unsubscribe" && req.method === "POST") {
+    cors(res);
+    var body01 = await readBody(req);
+    try {
+      var unsub = JSON.parse(body01);
+      global._pushSubscriptions = global._pushSubscriptions.filter(function(s){ return s.endpoint !== unsub.endpoint; });
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ ok: true }));
+    } catch(e) {
+      res.writeHead(400); return res.end(JSON.stringify({ error: e.message }));
+    }
+  }
+
   // GET BOXES LIST
   if (pathname === "/boxes" && req.method === "POST") {
     var b = await readBody(req);
@@ -225,6 +279,30 @@ var server = http.createServer(async function(req, res) {
       global._lastSync = new Date().toISOString();
 
       console.log("  Totale nuove: " + allEmails.length);
+
+      // ── Invia notifica push se ci sono email nuove ─────────────────────────
+      if (allEmails.length > 0 && VAPID_PUBLIC && VAPID_PRIVATE && global._pushSubscriptions.length > 0) {
+        var n = allEmails.length;
+        var payload = JSON.stringify({
+          title: "WorkRadar – " + n + " nuov" + (n===1?"a":"e") + " email",
+          body:  allEmails.slice(0,3).map(function(e){ return e.titolo||"(nessun oggetto)"; }).join(", "),
+          url:   "/"
+        });
+        var toRemove = [];
+        for (var pi = 0; pi < global._pushSubscriptions.length; pi++) {
+          try {
+            await webpush.sendNotification(global._pushSubscriptions[pi], payload);
+          } catch(pe) {
+            // 410 = subscription scaduta/revocata → rimuovila
+            if (pe.statusCode === 410 || pe.statusCode === 404) toRemove.push(pi);
+          }
+        }
+        // Rimuovi subscription non più valide (in ordine inverso)
+        for (var ri = toRemove.length - 1; ri >= 0; ri--) {
+          global._pushSubscriptions.splice(toRemove[ri], 1);
+        }
+        console.log("  Push inviate a " + (global._pushSubscriptions.length) + " dispositivi");
+      }
 
       res.writeHead(200, { "Content-Type": "application/json" });
       return res.end(JSON.stringify({
