@@ -209,7 +209,7 @@ var server = http.createServer(async function(req, res) {
 
   if (pathname === "/health") {
     res.writeHead(200, { "Content-Type": "application/json" });
-    return res.end(JSON.stringify({ ok: true, version: "3.2.0" }));
+    return res.end(JSON.stringify({ ok: true, version: "3.3.0" }));
   }
 
   // Pubblico – non richiede auth
@@ -301,7 +301,7 @@ var server = http.createServer(async function(req, res) {
 
       for (var i = 0; i < selectedBoxes.length; i++) {
         var box     = selectedBoxes[i];
-        var lastUID = lastUIDs[box] || 0;
+        var lastUID = Math.max(lastUIDs[box] || 0, global._lastUIDs[box] || 0);
         var result  = await fetchNewFromBox(imap2, box, lastUID);
         var emails  = result.emails || [];
         var maxUID  = result.maxUID || lastUID;
@@ -314,13 +314,22 @@ var server = http.createServer(async function(req, res) {
 
       imap2.end();
 
-      global._cachedJobs = (global._cachedJobs || []).concat(allEmails);
+      // Deduplicazione: notifica e salva solo email con ID non già in cache
+      var existingIds = new Set((global._cachedJobs || []).map(function(j){ return j.id; }));
+      var reallyNew   = allEmails.filter(function(e){ return !existingIds.has(e.id); });
+
+      global._cachedJobs = (global._cachedJobs || []).concat(reallyNew);
       global._lastSync   = new Date().toISOString();
       global._lastUIDs   = Object.assign({}, global._lastUIDs, newLastUIDs);
 
-      console.log("  Totale nuove: " + allEmails.length);
+      // Cap cache a 500 email per evitare crescita infinita
+      if (global._cachedJobs.length > 500) {
+        global._cachedJobs = global._cachedJobs.slice(-500);
+      }
 
-      await sendPushNotifications(allEmails);
+      console.log("  Totale nuove (dedup): " + reallyNew.length + " (scartate: " + (allEmails.length - reallyNew.length) + ")");
+
+      await sendPushNotifications(reallyNew);
 
       res.writeHead(200, { "Content-Type": "application/json" });
       return res.end(JSON.stringify({
@@ -379,13 +388,23 @@ async function serverAutoSync() {
     }
 
     imap.end();
-    global._cachedJobs = (global._cachedJobs || []).concat(allNew);
+
+    // Deduplicazione
+    var existingIds = new Set((global._cachedJobs || []).map(function(j){ return j.id; }));
+    var reallyNew   = allNew.filter(function(e){ return !existingIds.has(e.id); });
+
+    global._cachedJobs = (global._cachedJobs || []).concat(reallyNew);
     global._lastSync   = new Date().toISOString();
     global._lastUIDs   = Object.assign({}, global._lastUIDs, newUIDs);
 
-    console.log("[auto-sync] totale nuove: " + allNew.length);
+    // Cap cache a 500
+    if (global._cachedJobs.length > 500) {
+      global._cachedJobs = global._cachedJobs.slice(-500);
+    }
 
-    await sendPushNotifications(allNew);
+    console.log("[auto-sync] totale nuove (dedup): " + reallyNew.length + " (scartate: " + (allNew.length - reallyNew.length) + ")");
+
+    await sendPushNotifications(reallyNew);
 
   } catch(e) {
     console.error("[auto-sync] errore:", e.message);
@@ -393,7 +412,7 @@ async function serverAutoSync() {
 }
 
 server.listen(PORT, function() {
-  console.log("WorkRadar Server v3.2 - Porta: " + PORT);
+  console.log("WorkRadar Server v3.3 - Porta: " + PORT);
   console.log("Auth: " + (SECRET ? "attiva" : "nessuna"));
   console.log("Sync: incrementale (solo email nuove)");
   console.log("Auto-sync server: ogni " + (AUTO_SYNC_INTERVAL/60000) + " minuti");
