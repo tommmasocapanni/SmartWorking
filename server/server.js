@@ -170,6 +170,12 @@ var server = http.createServer(async function(req, res) {
     return res.end(JSON.stringify({ ok: true, version: "3.0.0" }));
   }
 
+  // GET /push/vapidPublicKey – pubblico, non richiede auth
+  if (pathname === "/push/vapidPublicKey" && req.method === "GET") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ key: VAPID_PUBLIC || "" }));
+  }
+
   if (!auth(req)) {
     res.writeHead(401, { "Content-Type": "application/json" });
     return res.end(JSON.stringify({ error: "Unauthorized" }));
@@ -181,13 +187,6 @@ var server = http.createServer(async function(req, res) {
       req.on("data", function(c) { body += c; });
       req.on("end", function() { resolve(body); });
     });
-  }
-
-  // GET /push/vapidPublicKey – la webapp lo usa per subscribe
-  if (pathname === "/push/vapidPublicKey" && req.method === "GET") {
-    cors(res);
-    res.writeHead(200, { "Content-Type": "application/json" });
-    return res.end(JSON.stringify({ key: VAPID_PUBLIC || "" }));
   }
 
   // POST /push/subscribe – salva subscription dal browser
