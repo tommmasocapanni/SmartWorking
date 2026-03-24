@@ -97,26 +97,20 @@ function cleanText(text) {
     .slice(0, 600);
 }
 
-// ── fetchNewFromBox – chunk-based, supporta limit per prima sync ──────────────
-function fetchNewFromBox(imap, boxName, lastUID, limit) {
-  limit = limit || 30;
+// ── fetchNewFromBox – Promise.all per attendere tutti i simpleParser ───────────
+function fetchNewFromBox(imap, boxName, lastUID) {
   return new Promise(function(resolve) {
     imap.openBox(boxName, true, function(err, box) {
-      if (err) return resolve({ emails: [], maxUID: lastUID || 0, hasMore: false });
+      if (err) return resolve({ emails: [], maxUID: lastUID || 0 });
       var total = box.messages.total;
-      if (total === 0) return resolve({ emails: [], maxUID: lastUID || 0, hasMore: false });
+      if (total === 0) return resolve({ emails: [], maxUID: lastUID || 0 });
 
       var fetchRange;
-      var hasMore = false;
       if (lastUID && lastUID > 0) {
-        // Sync incrementale: prende tutte le nuove
         fetchRange = (lastUID + 1) + ":*";
       } else {
-        // Prima sync: prende le `limit` più recenti
-        var end   = total;
-        var start = Math.max(1, end - limit + 1);
-        hasMore   = start > 1;
-        fetchRange = start + ":" + end;
+        var start = Math.max(1, total - 29);
+        fetchRange = start + ":*";
       }
 
       var fetcher;
@@ -163,13 +157,13 @@ function fetchNewFromBox(imap, boxName, lastUID, limit) {
 
       fetcher.once("error", function() {
         Promise.all(promises).then(function(results) {
-          resolve({ emails: results.filter(Boolean), maxUID: maxUID, hasMore: false });
+          resolve({ emails: results.filter(Boolean), maxUID: maxUID });
         });
       });
 
       fetcher.once("end", function() {
         Promise.all(promises).then(function(results) {
-          resolve({ emails: results.filter(Boolean), maxUID: maxUID, hasMore: hasMore });
+          resolve({ emails: results.filter(Boolean), maxUID: maxUID });
         });
       });
     });
@@ -263,7 +257,6 @@ var server = http.createServer(async function(req, res) {
 
       var selectedBoxes = p2.boxes    || ["INBOX"];
       var lastUIDs      = p2.lastUIDs || {};
-      var limit         = parseInt(p2.limit) || 30;
 
       console.log("[" + new Date().toISOString() + "] sync -> " + p2.email);
 
@@ -273,12 +266,11 @@ var server = http.createServer(async function(req, res) {
       var imap2       = await connectImap(p2);
       var allEmails   = [];
       var newLastUIDs = {};
-      var anyHasMore  = false;
 
       for (var i = 0; i < selectedBoxes.length; i++) {
         var box     = selectedBoxes[i];
         var lastUID = lastUIDs[box] || 0;
-        var result  = await fetchNewFromBox(imap2, box, lastUID, limit);
+        var result  = await fetchNewFromBox(imap2, box, lastUID);
         var emails  = result.emails || [];
         var maxUID  = result.maxUID || lastUID;
         newLastUIDs[box] = maxUID;
@@ -286,7 +278,6 @@ var server = http.createServer(async function(req, res) {
           console.log("  " + box + ": " + emails.length + " nuove (lastUID:" + lastUID + " -> " + maxUID + ")");
         }
         allEmails = allEmails.concat(emails);
-        if (result.hasMore) anyHasMore = true;
       }
 
       imap2.end();
@@ -325,7 +316,6 @@ var server = http.createServer(async function(req, res) {
         total:    allEmails.length,
         jobs:     allEmails,
         lastUIDs: newLastUIDs,
-        hasMore:  anyHasMore,
       }));
     } catch(e) {
       console.error("Errore sync:", e.message);
