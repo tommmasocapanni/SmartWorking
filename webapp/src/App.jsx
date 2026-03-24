@@ -540,7 +540,7 @@ export default function App() {
     setPushStatus("loading");
     try {
       // 1. Registra il service worker
-      const reg = await navigator.serviceWorker.register("/sw.js");
+      const reg = await navigator.serviceWorker.register("./sw.js");
       await navigator.serviceWorker.ready;
 
       // 2. Chiedi permesso (deve essere da gesto utente ✓)
@@ -575,8 +575,7 @@ export default function App() {
     if(!("serviceWorker" in navigator)) return;
     setPushStatus("loading");
     try {
-      const reg = await navigator.serviceWorker.register("./sw.js");
-
+      const reg = await navigator.serviceWorker.getRegistration("/sw.js");
       if(reg) {
         const sub = await reg.pushManager.getSubscription();
         if(sub) {
