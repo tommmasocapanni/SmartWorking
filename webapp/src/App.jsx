@@ -522,6 +522,76 @@ export default function App() {
   const syncFnRef    = useRef(null);
   const ptrStartY    = useRef(null);
   const PTR_THRESH   = 80;
+  const [pushStatus, setPushStatus] = useState("idle"); // idle | loading | granted | denied | unsupported
+
+  // ── Push helpers ───────────────────────────────────────────────────────────
+  function urlBase64ToUint8Array(b64) {
+    const pad = "=".repeat((4 - b64.length % 4) % 4);
+    const b   = (b64 + pad).replace(/-/g,"+").replace(/_/g,"/");
+    const raw = atob(b);
+    return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));
+  }
+
+  async function enablePush() {
+    if(!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      setPushStatus("unsupported"); return;
+    }
+    if(!cfg.serverUrl) { setError("Configura prima l'URL del server."); return; }
+    setPushStatus("loading");
+    try {
+      // 1. Registra il service worker
+      const reg = await navigator.serviceWorker.register("/sw.js");
+      await navigator.serviceWorker.ready;
+
+      // 2. Chiedi permesso (deve essere da gesto utente ✓)
+      const perm = await Notification.requestPermission();
+      if(perm !== "granted") { setPushStatus("denied"); return; }
+
+      // 3. Recupera la chiave pubblica VAPID dal server
+      const kr = await fetch(`${cfg.serverUrl}/push/vapidPublicKey`);
+      const kd = await kr.json();
+      if(!kd.key) throw new Error("VAPID key non disponibile sul server.");
+
+      // 4. Crea la subscription
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(kd.key),
+      });
+
+      // 5. Invia la subscription al server
+      const h = {"Content-Type":"application/json"};
+      if(cfg.secret) h["Authorization"] = `Bearer ${cfg.secret}`;
+      await fetch(`${cfg.serverUrl}/push/subscribe`, { method:"POST", headers:h, body:JSON.stringify(sub) });
+
+      setPushStatus("granted");
+      ls.set("wr_push","granted");
+    } catch(e) {
+      setPushStatus("idle");
+      setError("Errore push: " + e.message);
+    }
+  }
+
+  async function disablePush() {
+    if(!("serviceWorker" in navigator)) return;
+    setPushStatus("loading");
+    try {
+      const reg = await navigator.serviceWorker.getRegistration("/sw.js");
+      if(reg) {
+        const sub = await reg.pushManager.getSubscription();
+        if(sub) {
+          const h = {"Content-Type":"application/json"};
+          if(cfg.secret) h["Authorization"] = `Bearer ${cfg.secret}`;
+          await fetch(`${cfg.serverUrl}/push/unsubscribe`, { method:"POST", headers:h, body:JSON.stringify(sub) });
+          await sub.unsubscribe();
+        }
+        await reg.unregister();
+      }
+      setPushStatus("idle");
+      ls.remove("wr_push");
+    } catch(e) {
+      setPushStatus("idle");
+    }
+  }
 
   // ── Boot ───────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -531,6 +601,7 @@ export default function App() {
     const u  = ls.get(STORE.uids);     if(u)  setUids(u);
     const as = ls.get(STORE.autosync); if(as) setAutoSync(as);
     const ls2= ls.get(STORE.lastsync); if(ls2)setLastSync(ls2);
+    const ps = ls.get("wr_push"); if(ps) setPushStatus(ps);
   }, []);
 
   useEffect(() => { if(jobs.length) ls.set(STORE.jobs, jobs); }, [jobs]);
@@ -1094,6 +1165,39 @@ export default function App() {
                 </select>
               </div>
               <div className="setup-note">Tieni la pagina aperta per l'auto-sync.</div>
+
+              {/* ── Notifiche Push ── */}
+              <div className="field" style={{marginTop:12}}>
+                <label>Notifiche Push (iPhone)</label>
+                {pushStatus==="unsupported" && (
+                  <div className="setup-note" style={{color:"var(--red,#ef4444)"}}>
+                    Non supportato su questo browser/dispositivo.
+                  </div>
+                )}
+                {pushStatus==="denied" && (
+                  <div className="setup-note" style={{color:"var(--red,#ef4444)"}}>
+                    Permesso negato. Vai in Impostazioni Safari → WorkRadar → Notifiche per riabilitarle.
+                  </div>
+                )}
+                {pushStatus==="granted" ? (
+                  <button className="btn btn-ghost" style={{fontSize:13,marginTop:4}} onClick={disablePush}>
+                    🔕 Disattiva notifiche
+                  </button>
+                ) : (
+                  <button
+                    className="btn btn-solid"
+                    style={{fontSize:13,marginTop:4}}
+                    disabled={pushStatus==="loading"}
+                    onClick={enablePush}
+                  >
+                    {pushStatus==="loading" ? "…" : "🔔 Attiva notifiche push"}
+                  </button>
+                )}
+                <div className="setup-note" style={{marginTop:4}}>
+                  Richiede iOS 16.4+ e app salvata sulla Home Screen.<br/>
+                  Il server deve avere le variabili VAPID_PUBLIC_KEY e VAPID_PRIVATE_KEY impostate.
+                </div>
+              </div>
             </>}
 
             <div className="setup-actions">
