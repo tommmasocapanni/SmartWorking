@@ -879,14 +879,20 @@ export default function WorkRadar() {
             </>)}
 
             <div className="setup-actions">
-              <button className="btn btn-outline" style={{color:"var(--red)",borderColor:"rgba(192,57,43,.3)",fontSize:11}} onClick={function(){
-                if(!window.confirm("Cancella tutti i dati salvati?")) return;
-                ["wr_v1_jobs","wr_v1_cfg","wr_v1_boxes","wr_v1_autosync","wr_v1_lastsync","wr_v1_uids",
-                 "wr_j10","wr_c10","wr_b10","wr_as","wr_ls","wr_jobs9","wr_cfg6","wr_boxes4",
-                 "wr_jobs8","wr_cfg5","wr_boxes3","wr_jobs7","wr_cfg4","wr_boxes2",
-                 "wr_jobs6","wr_cfg3","wr_jobs5","wr_cfg2"].forEach(function(k){localStorage.removeItem(k);});
+              <button className="btn btn-outline" style={{color:"var(--red)",borderColor:"rgba(192,57,43,.3)",fontSize:11}} onClick={async function(){
+                if(!window.confirm("Azzera tutte le email e riscarica le ultime 30? Le credenziali vengono mantenute.")) return;
+                // 1. Cancella solo email e UIDs dal localStorage (tieni credenziali e config)
+                ["wr_v1_jobs","wr_v1_lastsync","wr_v1_uids",
+                 "wr_j10","wr_ls","wr_jobs9","wr_jobs8","wr_jobs7","wr_jobs6","wr_jobs5"].forEach(function(k){localStorage.removeItem(k);});
+                // 2. Azzera cache e UIDs anche sul server
+                try{
+                  var h={"Content-Type":"application/json"};
+                  if(cfg.secret) h["Authorization"]="Bearer "+cfg.secret;
+                  await fetch(cfg.serverUrl+"/reset",{method:"POST",headers:h});
+                }catch(e){}
+                // 3. Ricarica la pagina — al boot farà subito sync con UIDs azzerati
                 window.location.reload();
-              }}>Reset</button>
+              }}>🔄 Reset email</button>
               <div style={{flex:1}}/>
               <button className="btn btn-outline" onClick={function(){setShowSetup(false);}}>Annulla</button>
               <button className="btn btn-solid" onClick={saveCfg}>Salva</button>
