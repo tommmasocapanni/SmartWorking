@@ -356,6 +356,16 @@ var server = http.createServer(async function(req, res) {
     return res.end(JSON.stringify({ ok:true, nuovi:nuovi.length, totale:jobs.length, items:summary, lastUpdate:global._lastSync }));
   }
 
+  // POST /reset – azzera cache server e UIDs
+  if (pathname === "/reset" && req.method === "POST") {
+    global._cachedJobs = [];
+    global._lastUIDs   = {};
+    global._lastSync   = null;
+    console.log("[reset] cache e UIDs azzerati");
+    res.writeHead(200, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ ok: true }));
+  }
+
   res.writeHead(404); res.end("Not found");
 });
 
