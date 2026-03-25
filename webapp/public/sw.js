@@ -4,13 +4,15 @@ self.addEventListener('activate', function(e) { e.waitUntil(self.clients.claim()
 self.addEventListener('push', function(event) {
   var data = {};
   try { data = event.data ? event.data.json() : {}; } catch(e) {}
+  // Tag univoco per email: evita che le notifiche si sovrascrivano
+  var tag = 'wr-' + (data.tag || Date.now());
   event.waitUntil(
     self.registration.showNotification(data.title || 'WorkRadar', {
-      body:      data.body || 'Hai ricevuto nuove email.',
+      body:      data.body  || 'Hai ricevuto una nuova email.',
       icon:      '/icon-192.png',
       badge:     '/icon-192.png',
-      tag:       'workradar-push',
-      renotify:  true,
+      tag:       tag,
+      renotify:  false,
       data:      { url: data.url || '/' },
     })
   );
