@@ -128,6 +128,10 @@ button{font-family:'DM Sans',sans-serif;cursor:pointer;border:none;outline:none;
 .modal-link{font-family:'DM Mono',monospace;font-size:11px;color:var(--text2);text-decoration:none;padding:5px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .modal-link:hover{border-color:var(--text2)}
 .modal-attach{display:flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:11px;color:var(--text2);padding:5px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px}
+.card-attachments{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;margin-bottom:2px}
+.card-attach-pill{font-family:'DM Mono',monospace;font-size:9px;padding:2px 6px;border-radius:4px;background:var(--surface2);border:1px solid var(--border);color:var(--text3);display:flex;align-items:center;gap:3px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card-links-row{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+.card-link-pill{font-family:'DM Mono',monospace;font-size:9px;padding:2px 6px;border-radius:4px;background:var(--surface2);border:1px solid var(--border);color:var(--text3);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .thread-list{display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
 .thread-email{background:var(--surface);cursor:pointer;transition:background .15s}
 .thread-email:hover{background:var(--surface2)}
@@ -308,6 +312,21 @@ function CardItem(props) {
           </div>
         )}
         {thread.note&&<div className="card-note-preview">📝 {thread.note}</div>}
+        {((thread.allegati&&thread.allegati.length>0)||(thread.links&&thread.links.length>0))&&(
+          <div className="card-attachments">
+            {(thread.allegati||[]).slice(0,3).map(function(a,i){
+              var icon=/image/.test(a.contentType)?"🖼️":/pdf/.test(a.contentType)?"📄":/zip|rar/.test(a.contentType)?"🗜️":"📎";
+              return <span key={i} className="card-attach-pill">{icon} {a.filename}</span>;
+            })}
+            {(thread.links||[]).slice(0,2).map(function(l,i){
+              var label=l.replace(/^https?:\/\//,"").replace(/\/.*$/,"");
+              return <span key={i} className="card-link-pill">🔗 {label}</span>;
+            })}
+            {((thread.allegati||[]).length+(thread.links||[]).length)>5&&(
+              <span className="card-attach-pill" style={{color:"var(--text3)"}}>+{((thread.allegati||[]).length+(thread.links||[]).length)-5}</span>
+            )}
+          </div>
+        )}
         <div className="card-desc">{thread.descrizione||""}</div>
         <div className="card-bottom">
           <div className="card-bottom-left">
@@ -654,7 +673,7 @@ export default function WorkRadar() {
     if(filter!=="tutti"&&t.stato!==filter)return false;
     if(filterBox!=="tutti"&&t.box!==filterBox)return false;
     if(filterTag&&(t.tags||[]).indexOf(filterTag)===-1)return false;
-    if(filterCliente&&(t.fonte_dominio||""!==filterCliente)) return false;
+    if(filterCliente&&(t.fonte_dominio||"")!==filterCliente) return false;
     var q=search.toLowerCase();
     return !q||[t.titolo,t.descrizione,t.fonte,t.box,t.note].some(function(s){return (s||"").toLowerCase().indexOf(q)!==-1;});
   });
