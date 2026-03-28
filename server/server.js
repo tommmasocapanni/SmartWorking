@@ -136,6 +136,32 @@ function fetchNewFromBox(imap, boxName, lastUID) {
               if (parseErr) return res2(null);
               var mid     = parsed.messageId || String(Date.now() + Math.random());
               var rawText = parsed.text || "";
+              var rawHtml = parsed.html || "";
+
+              // Estrai link puliti
+              var linkSet = {};
+              var allLinks = (rawText + " " + rawHtml).match(/https?:\/\/[^\s"'<>\)\]]+/g) || [];
+              allLinks.forEach(function(l) {
+                l = l.replace(/[.,;:!?\)\]]+$/, "");
+                if (/unsubscr|tracking|pixel|mailto|click\.em|open\.em|list-manage/i.test(l)) return;
+                linkSet[l] = true;
+              });
+              var links = Object.keys(linkSet).slice(0, 10);
+
+              // Estrai allegati
+              var allegati = (parsed.attachments || []).map(function(a) {
+                return {
+                  filename: a.filename || "allegato",
+                  contentType: a.contentType || "application/octet-stream",
+                  size: a.size || 0,
+                };
+              });
+
+              // Estrai dominio mittente
+              var fromAddress = parsed.from && parsed.from.value && parsed.from.value[0] ? parsed.from.value[0].address || "" : "";
+              var fromDomain  = fromAddress.includes("@") ? fromAddress.split("@")[1].toLowerCase() : "";
+              var fromName    = parsed.from && parsed.from.value && parsed.from.value[0] ? parsed.from.value[0].name || "" : "";
+
               res2({
                 id:              "reg_" + Buffer.from(mid).toString("base64").slice(0, 16),
                 titolo:          parsed.subject || "(nessun oggetto)",
@@ -143,11 +169,16 @@ function fetchNewFromBox(imap, boxName, lastUID) {
                 budget:          null,
                 scadenza:        null,
                 fonte:           parsed.from ? parsed.from.text : "sconosciuto",
+                fonte_email:     fromAddress,
+                fonte_dominio:   fromDomain,
+                fonte_nome:      fromName,
                 fonte_tipo:      "register",
                 data_ricezione:  parsed.date ? parsed.date.toISOString() : new Date().toISOString(),
                 email_originale: cleanText(rawText).slice(0, 300),
                 box:             boxName,
                 _uid:            uid,
+                links:           links,
+                allegati:        allegati,
               });
             });
           });
