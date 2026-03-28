@@ -659,12 +659,19 @@ export default function WorkRadar() {
     return sortDesc?db-da:da-db;
   });
 
-  // Clienti ricorrenti (dominio con più di 1 email)
+  // Clienti ricorrenti — chiave universale che funziona anche senza fonte_dominio
+  function getClienteKey(fonte, fonte_dominio, fonte_email){
+    if(fonte_dominio) return fonte_dominio;
+    if(fonte_email && fonte_email.includes("@")) return fonte_email.split("@")[1].toLowerCase();
+    var m=(fonte||"").match(/<[^>]+@([^>]+)>/);
+    if(m) return m[1].toLowerCase();
+    return (fonte||"").trim();
+  }
   var clientiMap={};
-  jobs.forEach(function(j){
-    var key=j.fonte_dominio||(j.fonte_email?j.fonte_email.split("@")[1]:"")|"";
+  threads.forEach(function(t){
+    var key=getClienteKey(t.fonte, t.fonte_dominio, t.fonte_email);
     if(!key) return;
-    if(!clientiMap[key]) clientiMap[key]={dominio:key,nome:j.fonte_nome||j.fonte||key,count:0};
+    if(!clientiMap[key]) clientiMap[key]={chiave:key,nome:t.fonte_nome||(t.fonte||"").replace(/<[^>]+>/g,"").trim()||key,count:0};
     clientiMap[key].count++;
   });
   var clientiRicorrenti=Object.values(clientiMap).filter(function(c){return c.count>1;}).sort(function(a,b){return b.count-a.count;});
@@ -673,7 +680,7 @@ export default function WorkRadar() {
     if(filter!=="tutti"&&t.stato!==filter)return false;
     if(filterBox!=="tutti"&&t.box!==filterBox)return false;
     if(filterTag&&(t.tags||[]).indexOf(filterTag)===-1)return false;
-    if(filterCliente&&(t.fonte_dominio||"")!==filterCliente) return false;
+    if(filterCliente&&getClienteKey(t.fonte,t.fonte_dominio,t.fonte_email)!==filterCliente) return false;
     var q=search.toLowerCase();
     return !q||[t.titolo,t.descrizione,t.fonte,t.box,t.note].some(function(s){return (s||"").toLowerCase().indexOf(q)!==-1;});
   });
@@ -790,7 +797,7 @@ export default function WorkRadar() {
                 return <span key={tag} className="filter-tag-chip" style={{background:c.bg,borderColor:c.border,color:c.text}} onClick={function(){setFilterTag(tag);}}>#{tag}</span>;
               })}
               {!filterCliente&&clientiRicorrenti.slice(0,5).map(function(c){
-                return <span key={c.dominio} className="filter-tag-chip" style={{background:"rgba(139,92,246,.08)",borderColor:"rgba(139,92,246,.2)",color:"#8b5cf6"}} onClick={function(){setFilterCliente(c.dominio);}}>👤 {c.nome.split(" ")[0]||c.dominio} ({c.count})</span>;
+                return <span key={c.chiave} className="filter-tag-chip" style={{background:"rgba(139,92,246,.08)",borderColor:"rgba(139,92,246,.2)",color:"#8b5cf6"}} onClick={function(){setFilterCliente(c.chiave);}}>👤 {c.nome.split(" ")[0]||c.chiave} ({c.count})</span>;
               })}
             </div>
           )}
