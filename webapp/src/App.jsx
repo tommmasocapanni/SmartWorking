@@ -124,20 +124,6 @@ button{font-family:'DM Sans',sans-serif;cursor:pointer;border:none;outline:none;
 .modal-meta-val{font-family:'DM Mono',monospace;font-size:11px;color:var(--text2)}
 .modal-sl{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:7px;margin-top:14px}
 .modal-desc{font-size:12px;color:var(--text2);line-height:1.75;white-space:pre-wrap}
-.modal-links{display:flex;flex-direction:column;gap:4px;margin-top:4px}
-.modal-link{font-family:"DM Mono",monospace;font-size:11px;color:var(--text2);text-decoration:none;padding:5px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.modal-link:hover{border-color:var(--text2)}
-.modal-attach{display:flex;align-items:center;gap:6px;font-family:"DM Mono",monospace;font-size:11px;color:var(--text2);padding:5px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px}
-.modal-attach-icon{font-size:14px;flex-shrink:0}
-.cliente-section{margin-bottom:18px;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm)}
-.cliente-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.cliente-name{font-size:12px;font-weight:500;color:var(--text)}
-.cliente-domain{font-family:"DM Mono",monospace;font-size:10px;color:var(--text3)}
-.cliente-mails{display:flex;flex-direction:column;gap:3px}
-.cliente-mail-item{font-family:"DM Mono",monospace;font-size:10px;color:var(--text3);padding:3px 6px;background:var(--surface);border-radius:4px;cursor:pointer}
-.cliente-mail-item:hover{color:var(--text)}
-.filter-cliente{font-family:"DM Mono",monospace;font-size:10px;padding:2px 8px;border-radius:20px;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);cursor:pointer}
-.filter-cliente.on{border-color:var(--text);color:var(--text);background:var(--surface)}
 .thread-list{display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
 .thread-email{background:var(--surface);cursor:pointer;transition:background .15s}
 .thread-email:hover{background:var(--surface2)}
@@ -252,7 +238,7 @@ function groupThreads(jobs) {
       var bp=STATO_PRIORITY[best]!=null?STATO_PRIORITY[best]:-1;
       return p>bp?e.stato:best;
     },emails[0].stato||"nuovo");
-    return {id:latest.id,titolo:latest.titolo,descrizione:latest.descrizione,fonte:latest.fonte,fonte_email:latest.fonte_email||"",fonte_dominio:latest.fonte_dominio||"",fonte_nome:latest.fonte_nome||"",box:latest.box,data_ricezione:latest.data_ricezione,stato:bestStato,note:latest.note||"",budget:latest.budget||"",tags:latest.tags||[],deadline:latest.deadline||"",pinned:latest.pinned||false,count:emails.length,emails:emails,links:latest.links||[],allegati:latest.allegati||[]};
+    return {id:latest.id,titolo:latest.titolo,descrizione:latest.descrizione,fonte:latest.fonte,box:latest.box,data_ricezione:latest.data_ricezione,stato:bestStato,note:latest.note||"",budget:latest.budget||"",tags:latest.tags||[],deadline:latest.deadline||"",pinned:latest.pinned||false,count:emails.length,emails:emails};
   });
 }
 function deadlineInfo(deadline) {
@@ -349,7 +335,6 @@ export default function WorkRadar() {
   var [filter,setFilter]=useState("tutti");
   var [filterBox,setFilterBox]=useState("tutti");
   var [filterTag,setFilterTag]=useState("");
-  var [filterCliente,setFilterCliente]=useState("");
   var [search,setSearch]=useState("");
   var [selected,setSelected]=useState(null);
   var [expandedEmail,setExpandedEmail]=useState(null);
@@ -626,25 +611,10 @@ export default function WorkRadar() {
     return sortDesc?db-da:da-db;
   });
 
-  // Raggruppa per cliente (dominio + nome mittente)
-  var clientiMap={};
-  jobs.forEach(function(j){
-    var key=j.fonte_dominio||(j.fonte_email?j.fonte_email.split("@")[1]:"")|| "";
-    if(!key) return;
-    if(!clientiMap[key]) clientiMap[key]={dominio:key,nome:j.fonte_nome||j.fonte||key,count:0,ids:[]};
-    clientiMap[key].count++;
-    clientiMap[key].ids.push(j.id);
-  });
-  var clientiRicorrenti=Object.values(clientiMap).filter(function(c){return c.count>1;}).sort(function(a,b){return b.count-a.count;});
-
   var filteredThreads=threads.filter(function(t){
     if(filter!=="tutti"&&t.stato!==filter)return false;
     if(filterBox!=="tutti"&&t.box!==filterBox)return false;
     if(filterTag&&(t.tags||[]).indexOf(filterTag)===-1)return false;
-    if(filterCliente){
-      var dom=t.fonte_dominio||"";
-      if(dom!==filterCliente) return false;
-    }
     var q=search.toLowerCase();
     return !q||[t.titolo,t.descrizione,t.fonte,t.box,t.note].some(function(s){return (s||"").toLowerCase().indexOf(q)!==-1;});
   });
@@ -736,7 +706,7 @@ export default function WorkRadar() {
             <input className="search" placeholder="cerca..." value={search} onChange={function(e){setSearch(e.target.value);}}/>
           </div>
 
-          {(filterBox!=="tutti"||filterTag||filterCliente||allBoxes.length>1||allTags.length>0||clientiRicorrenti.length>0)&&(
+          {(filterBox!=="tutti"||filterTag||allBoxes.length>1||allTags.length>0)&&(
             <div className="filter-tags">
               {filterBox!=="tutti"&&(
                 <span className="filter-tag-chip" style={{background:"rgba(59,130,246,.1)",borderColor:"rgba(59,130,246,.3)",color:"#3b82f6"}} onClick={function(){setFilterBox("tutti");}}>
@@ -748,20 +718,12 @@ export default function WorkRadar() {
                   # {filterTag} ✕
                 </span>
               )}
-              {filterCliente&&(
-                <span className="filter-tag-chip" style={{background:"rgba(139,92,246,.1)",borderColor:"rgba(139,92,246,.3)",color:"#8b5cf6"}} onClick={function(){setFilterCliente("");}}>
-                  👤 {filterCliente} ✕
-                </span>
-              )}
               {filterBox==="tutti"&&allBoxes.map(function(box){
                 return <span key={box} className="filter-tag-chip" style={{background:"var(--surface2)",borderColor:"var(--border)",color:"var(--text3)"}} onClick={function(){setFilterBox(box);}}>📁 {shortBox(box)}</span>;
               })}
               {!filterTag&&allTags.map(function(tag){
                 var c=tagColor(tag);
                 return <span key={tag} className="filter-tag-chip" style={{background:c.bg,borderColor:c.border,color:c.text}} onClick={function(){setFilterTag(tag);}}>#{tag}</span>;
-              })}
-              {!filterCliente&&clientiRicorrenti.slice(0,5).map(function(c){
-                return <span key={c.dominio} className="filter-tag-chip" style={{background:"rgba(139,92,246,.08)",borderColor:"rgba(139,92,246,.2)",color:"#8b5cf6"}} onClick={function(){setFilterCliente(c.dominio);}}>👤 {c.nome.split(" ")[0]||c.dominio} ({c.count})</span>;
               })}
             </div>
           )}
@@ -816,21 +778,6 @@ export default function WorkRadar() {
               <>
                 <div className="modal-sl">Testo</div>
                 <div className="modal-desc">{selected.descrizione||"-"}</div>
-              </>
-            )}
-
-            {((selected.links&&selected.links.length>0)||(selected.allegati&&selected.allegati.length>0))&&(
-              <>
-                <div className="modal-sl">📎 Allegati e link</div>
-                {selected.allegati&&selected.allegati.map(function(a,i){
-                  var icon = /image/.test(a.contentType)?"🖼️":/pdf/.test(a.contentType)?"📄":/zip|rar/.test(a.contentType)?"🗜️":"📎";
-                  var size = a.size>1024*1024?(a.size/1024/1024).toFixed(1)+"MB":a.size>1024?(a.size/1024).toFixed(0)+"KB":a.size+"B";
-                  return <div key={i} className="modal-attach"><span className="modal-attach-icon">{icon}</span><span>{a.filename}</span><span style={{marginLeft:"auto",opacity:.5,fontSize:10}}>{size}</span></div>;
-                })}
-                {selected.links&&selected.links.map(function(l,i){
-                  var label=l.replace(/^https?:\/\//,"").replace(/\/.*$/,"");
-                  return <a key={i} className="modal-link" href={l} target="_blank" rel="noopener noreferrer">🔗 {label}</a>;
-                })}
               </>
             )}
 
@@ -932,14 +879,20 @@ export default function WorkRadar() {
             </>)}
 
             <div className="setup-actions">
-              <button className="btn btn-outline" style={{color:"var(--red)",borderColor:"rgba(192,57,43,.3)",fontSize:11}} onClick={function(){
-                if(!window.confirm("Cancella tutti i dati salvati?")) return;
-                ["wr_v1_jobs","wr_v1_cfg","wr_v1_boxes","wr_v1_autosync","wr_v1_lastsync","wr_v1_uids",
-                 "wr_j10","wr_c10","wr_b10","wr_as","wr_ls","wr_jobs9","wr_cfg6","wr_boxes4",
-                 "wr_jobs8","wr_cfg5","wr_boxes3","wr_jobs7","wr_cfg4","wr_boxes2",
-                 "wr_jobs6","wr_cfg3","wr_jobs5","wr_cfg2"].forEach(function(k){localStorage.removeItem(k);});
+              <button className="btn btn-outline" style={{color:"var(--red)",borderColor:"rgba(192,57,43,.3)",fontSize:11}} onClick={async function(){
+                if(!window.confirm("Azzera tutte le email e riscarica le ultime 30? Le credenziali vengono mantenute.")) return;
+                // 1. Cancella solo email e UIDs dal localStorage (tieni credenziali e config)
+                ["wr_v1_jobs","wr_v1_lastsync","wr_v1_uids",
+                 "wr_j10","wr_ls","wr_jobs9","wr_jobs8","wr_jobs7","wr_jobs6","wr_jobs5"].forEach(function(k){localStorage.removeItem(k);});
+                // 2. Azzera cache e UIDs anche sul server
+                try{
+                  var h={"Content-Type":"application/json"};
+                  if(cfg.secret) h["Authorization"]="Bearer "+cfg.secret;
+                  await fetch(cfg.serverUrl+"/reset",{method:"POST",headers:h});
+                }catch(e){}
+                // 3. Ricarica la pagina — al boot farà subito sync con UIDs azzerati
                 window.location.reload();
-              }}>Reset</button>
+              }}>🔄 Reset email</button>
               <div style={{flex:1}}/>
               <button className="btn btn-outline" onClick={function(){setShowSetup(false);}}>Annulla</button>
               <button className="btn btn-solid" onClick={saveCfg}>Salva</button>
