@@ -192,6 +192,49 @@ button{font-family:'DM Sans',sans-serif;cursor:pointer;border:none;outline:none;
 .ptr-arrow{font-size:14px;transition:transform .3s}
 .ptr-arrow.ready{transform:rotate(180deg)}
 
+/* ── BOX COLOR STRIPE ───────────────────────────────────────────────── */
+.card-color-stripe{position:absolute;top:0;left:0;width:3px;bottom:0;border-radius:var(--radius) 0 0 var(--radius)}
+.card-box-colored{font-family:'DM Mono',monospace;font-size:9px;border-radius:4px;padding:2px 6px;border:1px solid;font-weight:500}
+
+/* ── BOX COLOR PICKER (in setup) ────────────────────────────────────── */
+.box-color-row{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:5px}
+.box-color-name{font-family:'DM Mono',monospace;font-size:11px;color:var(--text);flex:1}
+.box-palette{display:flex;gap:5px;align-items:center}
+.box-palette-dot{width:16px;height:16px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s,border-color .15s;flex-shrink:0}
+.box-palette-dot:hover{transform:scale(1.2)}
+.box-palette-dot.selected{border-color:var(--text);transform:scale(1.15)}
+.box-palette-dot.none{background:var(--border2);position:relative}
+
+/* ── VAULT ──────────────────────────────────────────────────────────── */
+.vault-modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:26px;max-width:520px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.3);animation:slideUp .22s ease;transition:background .3s,border-color .3s}
+.vault-grid{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.vault-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);transition:border-color .15s}
+.vault-item:hover{border-color:var(--border2)}
+.vault-item-icon{font-size:18px;flex-shrink:0}
+.vault-item-info{flex:1;min-width:0}
+.vault-item-name{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vault-item-meta{font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);margin-top:2px}
+.vault-item-actions{display:flex;gap:6px;flex-shrink:0}
+.vault-drop{border:1.5px dashed var(--border2);border-radius:var(--radius-sm);padding:22px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;font-family:'DM Mono',monospace;font-size:11px;color:var(--text3)}
+.vault-drop:hover,.vault-drop.drag-over{border-color:var(--text);background:var(--surface2);color:var(--text2)}
+.vault-attach-list{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+.vault-attach-row{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;cursor:pointer;transition:border-color .15s}
+.vault-attach-row:hover{border-color:var(--text2)}
+.vault-attach-row-name{font-family:'DM Mono',monospace;font-size:11px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vault-attach-row-size{font-family:'DM Mono',monospace;font-size:10px;color:var(--text3)}
+
+/* ── ATTACHMENT PREVIEW ─────────────────────────────────────────────── */
+.attach-preview-overlay{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.75);backdrop-filter:blur(14px);display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .18s ease}
+.attach-preview-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;max-width:720px;width:100%;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 32px 80px rgba(0,0,0,.4);animation:slideUp .22s ease}
+.attach-preview-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);flex-shrink:0}
+.attach-preview-title{font-family:'DM Mono',monospace;font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;margin-right:12px}
+.attach-preview-body{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;padding:16px;min-height:200px}
+.attach-preview-body img{max-width:100%;max-height:65vh;border-radius:8px;object-fit:contain}
+.attach-preview-body iframe{width:100%;height:65vh;border:none;border-radius:8px}
+.attach-preview-unsupported{text-align:center;padding:40px;font-family:'DM Mono',monospace;font-size:12px;color:var(--text3)}
+.modal-attach-clickable{cursor:pointer;transition:border-color .15s}
+.modal-attach-clickable:hover{border-color:var(--text2)}
+
 `;
 
 const STATUSES = ["nuovo","visto","applicato","archiviato"];
@@ -204,6 +247,19 @@ const TAG_COLORS = [
   {bg:"rgba(239,68,68,.12)",border:"rgba(239,68,68,.3)",text:"#ef4444"},
   {bg:"rgba(139,92,246,.12)",border:"rgba(139,92,246,.3)",text:"#8b5cf6"},
   {bg:"rgba(236,72,153,.12)",border:"rgba(236,72,153,.3)",text:"#ec4899"},
+];
+
+// ── Palette colori box ────────────────────────────────────────────────────────
+const BOX_PALETTE = [
+  {id:"blue",   label:"Blu",      accent:"#3b82f6", bg:"rgba(59,130,246,.10)",  border:"rgba(59,130,246,.30)"},
+  {id:"green",  label:"Verde",    accent:"#10b981", bg:"rgba(16,185,129,.10)",  border:"rgba(16,185,129,.30)"},
+  {id:"amber",  label:"Ambra",    accent:"#f59e0b", bg:"rgba(245,158,11,.10)",  border:"rgba(245,158,11,.30)"},
+  {id:"red",    label:"Rosso",    accent:"#ef4444", bg:"rgba(239,68,68,.10)",   border:"rgba(239,68,68,.30)"},
+  {id:"violet", label:"Viola",    accent:"#8b5cf6", bg:"rgba(139,92,246,.10)",  border:"rgba(139,92,246,.30)"},
+  {id:"pink",   label:"Rosa",     accent:"#ec4899", bg:"rgba(236,72,153,.10)",  border:"rgba(236,72,153,.30)"},
+  {id:"cyan",   label:"Ciano",    accent:"#06b6d4", bg:"rgba(6,182,212,.10)",   border:"rgba(6,182,212,.30)"},
+  {id:"orange", label:"Arancio",  accent:"#f97316", bg:"rgba(249,115,22,.10)",  border:"rgba(249,115,22,.30)"},
+  {id:"none",   label:"Nessuno",  accent:null,      bg:null,                    border:null},
 ];
 
 function tagColor(tag) {
@@ -263,11 +319,13 @@ function save(key,val){try{localStorage.setItem(key,JSON.stringify(val));}catch(
 function load(key){try{var v=localStorage.getItem(key);return v?JSON.parse(v):null;}catch(e){return null;}}
 
 function CardItem(props) {
-  var thread=props.thread, i=props.i, onOpen=props.onOpen, onUpdate=props.onUpdate, filterTag=props.filterTag, onFilterBox=props.onFilterBox, onFilterTag=props.onFilterTag;
+  var thread=props.thread, i=props.i, onOpen=props.onOpen, onUpdate=props.onUpdate, filterTag=props.filterTag, onFilterBox=props.onFilterBox, onFilterTag=props.onFilterTag, boxColors=props.boxColors||{};
   var isThread=thread.count>1;
   var nextStato=STATUSES[(STATUSES.indexOf(thread.stato)+1)%STATUSES.length];
   var dl=deadlineInfo(thread.deadline);
   var touchX=useRef(null);
+  var boxColor=thread.box?BOX_PALETTE.find(function(p){return p.id===(boxColors[thread.box]||"none");})||BOX_PALETTE[BOX_PALETTE.length-1]:null;
+  var hasColor=boxColor&&boxColor.accent;
   function onTouchStart(e){ touchX.current=e.touches[0].clientX; }
   function onTouchEnd(e){
     if(touchX.current===null) return;
@@ -282,17 +340,22 @@ function CardItem(props) {
       <div className="swipe-hint right">👁</div>
       <div
         className={"card stato-"+thread.stato+(thread.pinned?" pinned":"")}
-        style={{animationDelay:i*18+"ms"}}
+        style={{animationDelay:i*18+"ms", paddingLeft: hasColor?"20px":"16px"}}
         onClick={function(){onOpen(thread);}}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
+        {hasColor&&<div className="card-color-stripe" style={{background:boxColor.accent}}/>}
         {isThread&&<div className="thread-stack"/>}
         {isThread&&thread.count>2&&<div className="thread-stack2"/>}
         {isThread&&<div className="thread-badge">{thread.count} email</div>}
         <div className="card-top">
           <div className="card-meta">
-            {thread.box&&<span className="card-box" onClick={function(e){e.stopPropagation();onFilterBox(thread.box);}}>{shortBox(thread.box)}</span>}
+            {thread.box&&(
+              hasColor
+                ? <span className="card-box-colored" style={{background:boxColor.bg,borderColor:boxColor.border,color:boxColor.accent}} onClick={function(e){e.stopPropagation();onFilterBox(thread.box);}}>{shortBox(thread.box)}</span>
+                : <span className="card-box" onClick={function(e){e.stopPropagation();onFilterBox(thread.box);}}>{shortBox(thread.box)}</span>
+            )}
           </div>
           <div className="card-right">
             <div className="card-age">{age(thread.data_ricezione)}</div>
@@ -383,6 +446,15 @@ export default function WorkRadar() {
   var syncRef=useRef(null);
   var undoTimerRef=useRef(null);
   var [pushStatus,setPushStatus]=useState("idle"); // idle | loading | granted | denied | unsupported
+  // ── Box colors ───────────────────────────────────────────────────────────
+  var [boxColors,setBoxColors]=useState(function(){ return load("wr_v1_boxcolors")||{}; });
+  // ── Vault ────────────────────────────────────────────────────────────────
+  var [showVault,setShowVault]=useState(false);
+  var [vaultDocs,setVaultDocs]=useState(function(){ return load("wr_v1_vault")||[]; });
+  var [vaultDragOver,setVaultDragOver]=useState(false);
+  var vaultInputRef=useRef(null);
+  // ── Attachment preview ───────────────────────────────────────────────────
+  var [previewAttach,setPreviewAttach]=useState(null);
 
   // ── Push helpers ────────────────────────────────────────────────────────────
   function urlBase64ToUint8Array(b64){
@@ -650,6 +722,70 @@ export default function WorkRadar() {
   }
 
 
+  // ── Box colors helpers ────────────────────────────────────────────────────
+  function setBoxColor(box, colorId){
+    setBoxColors(function(prev){
+      var next=Object.assign({},prev);
+      next[box]=colorId;
+      save("wr_v1_boxcolors",next);
+      return next;
+    });
+  }
+
+  // ── Vault helpers ─────────────────────────────────────────────────────────
+  function vaultAddFiles(files){
+    Array.from(files).forEach(function(file){
+      var reader=new FileReader();
+      reader.onload=function(e){
+        var doc={id:Date.now()+Math.random(),name:file.name,size:file.size,type:file.type,dataUrl:e.target.result,addedAt:new Date().toISOString()};
+        setVaultDocs(function(prev){
+          var next=prev.concat([doc]);
+          // localStorage has ~5MB limit; skip if too big
+          try{save("wr_v1_vault",next);}catch(err){next=prev;}
+          return next;
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+  function vaultDelete(id){
+    setVaultDocs(function(prev){
+      var next=prev.filter(function(d){return d.id!==id;});
+      save("wr_v1_vault",next);
+      return next;
+    });
+  }
+  function vaultAttachToSelected(doc){
+    if(!selected) return;
+    var existing=selected.vaultAttachments||[];
+    if(existing.some(function(d){return d.id===doc.id;})) return;
+    updateJob(selected.id,{vaultAttachments:existing.concat([doc])});
+    setSelected(function(s){return Object.assign({},s,{vaultAttachments:(s.vaultAttachments||[]).concat([doc])});});
+  }
+  function vaultDetachFromSelected(docId){
+    if(!selected) return;
+    var next=(selected.vaultAttachments||[]).filter(function(d){return d.id!==docId;});
+    updateJob(selected.id,{vaultAttachments:next});
+    setSelected(function(s){return Object.assign({},s,{vaultAttachments:next});});
+  }
+  function fmtFileSize(bytes){
+    if(bytes>1048576) return (bytes/1048576).toFixed(1)+"MB";
+    if(bytes>1024) return (bytes/1024).toFixed(0)+"KB";
+    return bytes+"B";
+  }
+  function fileIcon(type){
+    if(!type) return "📎";
+    if(/image/.test(type)) return "🖼️";
+    if(/pdf/.test(type)) return "📄";
+    if(/zip|rar|7z/.test(type)) return "🗜️";
+    if(/word|doc/.test(type)) return "📝";
+    if(/sheet|excel|xls/.test(type)) return "📊";
+    return "📎";
+  }
+  function openAttachPreview(name, dataUrl, contentType){
+    setPreviewAttach({name:name, dataUrl:dataUrl, contentType:contentType||""});
+  }
+
   var allTags=[...new Set(jobs.flatMap(function(j){return j.tags||[];}))];
   var allBoxes=[...new Set(jobs.map(function(j){return j.box;}).filter(Boolean))];
 
@@ -725,6 +861,7 @@ export default function WorkRadar() {
           </div>
           <div className="topbar-right">
             {cfg.serverUrl&&<div className="server-status"><span className={serverClass}/>{serverOnline===true?"online":serverOnline===false?"offline":"..."}</div>}
+            <button className={"btn btn-outline"+(showVault?" on":"")} onClick={function(){setShowVault(true);}}>🗄️{vaultDocs.length>0?" ("+vaultDocs.length+")":""}</button>
             <button className={"btn btn-outline"+(cfgSaved?" on":"")} onClick={function(){setShowSetup(true);}}>{cfgSaved?"configurato":"+ configura"}</button>
             <button className="btn btn-solid" onClick={function(){doSync(false);}} disabled={loading}>{loading?"...":"Sincronizza"}</button>
           </div>
@@ -810,7 +947,7 @@ export default function WorkRadar() {
               <div className="empty"><div className="empty-icon">0</div><div className="empty-title">Nessun risultato</div></div>
             )}
             {filteredThreads.map(function(thread,i){
-              return <CardItem key={thread.id} thread={thread} i={i} onOpen={openModal} onUpdate={updateJob} filterTag={filterTag} onFilterBox={setFilterBox} onFilterTag={setFilterTag}/>;
+              return <CardItem key={thread.id} thread={thread} i={i} onOpen={openModal} onUpdate={updateJob} filterTag={filterTag} onFilterBox={setFilterBox} onFilterTag={setFilterTag} boxColors={boxColors}/>;
             })}
           </div>
         </div>
@@ -862,7 +999,12 @@ export default function WorkRadar() {
                   {(selected.allegati||[]).map(function(a,i){
                     var icon=/image/.test(a.contentType)?"🖼️":/pdf/.test(a.contentType)?"📄":/zip|rar/.test(a.contentType)?"🗜️":"📎";
                     var size=a.size>1048576?(a.size/1048576).toFixed(1)+"MB":a.size>1024?(a.size/1024).toFixed(0)+"KB":a.size+"B";
-                    return <div key={i} className="modal-attach"><span>{icon}</span><span style={{flex:1}}>{a.filename}</span><span style={{opacity:.5,fontSize:10}}>{size}</span></div>;
+                    var canPreview=a.dataUrl&&(/image/.test(a.contentType)||/pdf/.test(a.contentType));
+                    return <div key={i} className={"modal-attach"+(canPreview?" modal-attach-clickable":"")} onClick={function(){if(canPreview)openAttachPreview(a.filename,a.dataUrl,a.contentType);}}>
+                      <span>{icon}</span><span style={{flex:1}}>{a.filename}</span>
+                      <span style={{opacity:.5,fontSize:10}}>{size}</span>
+                      {canPreview&&<span style={{fontSize:10,color:"var(--text3)"}}>👁</span>}
+                    </div>;
                   })}
                   {(selected.links||[]).map(function(l,i){
                     var label=l.replace(/^https?:\/\//,"").replace(/\/.*$/,"");
@@ -870,6 +1012,29 @@ export default function WorkRadar() {
                   })}
                 </div>
               </>
+            )}
+
+            <div className="modal-sl">🗄️ Dal Vault</div>
+            {vaultDocs.length===0?(
+              <div style={{fontFamily:"DM Mono,monospace",fontSize:11,color:"var(--text3)",padding:"6px 0"}}>Nessun documento nel vault. <span style={{cursor:"pointer",textDecoration:"underline"}} onClick={function(){setShowVault(true);}}>Aggiungi →</span></div>
+            ):(
+              <div className="vault-attach-list">
+                {vaultDocs.map(function(doc){
+                  var attached=(selected.vaultAttachments||[]).some(function(d){return d.id===doc.id;});
+                  var canPreview=/image/.test(doc.type)||/pdf/.test(doc.type);
+                  return (
+                    <div key={doc.id} className="vault-attach-row" onClick={function(){if(canPreview)openAttachPreview(doc.name,doc.dataUrl,doc.type);}} style={{opacity:attached?1:0.7}}>
+                      <span>{fileIcon(doc.type)}</span>
+                      <span className="vault-attach-row-name">{doc.name}</span>
+                      <span className="vault-attach-row-size">{fmtFileSize(doc.size)}</span>
+                      {canPreview&&<span style={{fontSize:10,color:"var(--text3)"}}>👁</span>}
+                      <button className={"btn btn-outline"} style={{padding:"2px 8px",fontSize:10,flexShrink:0,color:attached?"var(--red)":"var(--text2)"}} onClick={function(e){e.stopPropagation();attached?vaultDetachFromSelected(doc.id):vaultAttachToSelected(doc);}}>
+                        {attached?"✕ Rimuovi":"+ Allega"}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
             )}
 
             <div className="modal-sl">Budget</div>
@@ -920,6 +1085,7 @@ export default function WorkRadar() {
               <button className={"tab"+(setupTab==="server"?" active":"")} onClick={function(){setSetupTab("server");}}>Server</button>
               <button className={"tab"+(setupTab==="imap"?" active":"")} onClick={function(){setSetupTab("imap");}}>Email</button>
               <button className={"tab"+(setupTab==="boxes"?" active":"")} onClick={function(){setSetupTab("boxes");if(availableBoxes.length===0)loadBoxes();}}>Cartelle</button>
+              <button className={"tab"+(setupTab==="colori"?" active":"")} onClick={function(){setSetupTab("colori");}}>Colori</button>
               <button className={"tab"+(setupTab==="sync"?" active":"")} onClick={function(){setSetupTab("sync");}}>Sync</button>
             </div>
 
@@ -946,6 +1112,36 @@ export default function WorkRadar() {
                 <div className="setup-note">{selectedBoxes.length} di {availableBoxes.length} selezionate.</div>
               </>)}
             </>)}
+            {setupTab==="colori"&&(<>
+              {allBoxes.length===0?(
+                <div className="box-loading">Sincronizza prima per vedere le cartelle.</div>
+              ):(
+                allBoxes.map(function(box){
+                  var currentColorId=boxColors[box]||"none";
+                  return (
+                    <div key={box} className="box-color-row">
+                      <span className="box-color-name">{box.replace("INBOX.","")}</span>
+                      <div className="box-palette">
+                        {BOX_PALETTE.map(function(p){
+                          var isSelected=currentColorId===p.id;
+                          return (
+                            <div
+                              key={p.id}
+                              className={"box-palette-dot"+(isSelected?" selected":"")+(p.id==="none"?" none":"")}
+                              style={{background:p.accent||"transparent",border:p.id==="none"?"1.5px dashed var(--border2)":isSelected?"2px solid var(--text)":"2px solid transparent"}}
+                              title={p.label}
+                              onClick={function(){setBoxColor(box, p.id);}}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+              <div className="setup-note" style={{marginTop:8}}>Il colore appare come striscia laterale e badge sulle card.</div>
+            </>)}
+
             {setupTab==="sync"&&(<>
               <div className="field"><label>Frequenza auto-sync</label>
                 <select value={autoSync} onChange={function(e){setAutoSync(parseInt(e.target.value));}}>
@@ -988,6 +1184,83 @@ export default function WorkRadar() {
               <button className="btn btn-outline" onClick={function(){setShowSetup(false);}}>Annulla</button>
               <button className="btn btn-solid" onClick={saveCfg}>Salva</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── ATTACHMENT PREVIEW OVERLAY ───────────────────────────────────── */}
+      {previewAttach&&(
+        <div className="attach-preview-overlay" onClick={function(){setPreviewAttach(null);}}>
+          <div className="attach-preview-box" onClick={function(e){e.stopPropagation();}}>
+            <div className="attach-preview-header">
+              <span className="attach-preview-title">{previewAttach.name}</span>
+              <button className="btn btn-outline" style={{padding:"4px 10px",fontSize:11}} onClick={function(){setPreviewAttach(null);}}>✕ Chiudi</button>
+            </div>
+            <div className="attach-preview-body">
+              {/image/.test(previewAttach.contentType)?(
+                <img src={previewAttach.dataUrl} alt={previewAttach.name}/>
+              ):/pdf/.test(previewAttach.contentType)?(
+                <iframe src={previewAttach.dataUrl} title={previewAttach.name}/>
+              ):(
+                <div className="attach-preview-unsupported">
+                  <div style={{fontSize:32,marginBottom:12}}>📎</div>
+                  <div>Anteprima non disponibile per questo tipo di file.</div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── VAULT MODAL ─────────────────────────────────────────────────────── */}
+      {showVault&&(
+        <div className="overlay" onClick={function(){setShowVault(false);}}>
+          <div className="vault-modal" onClick={function(e){e.stopPropagation();}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
+              <div className="setup-title">🗄️ Vault documenti</div>
+              <button className="btn btn-outline" style={{padding:"4px 10px",fontSize:11}} onClick={function(){setShowVault(false);}}>✕</button>
+            </div>
+            <div className="setup-sub">I tuoi documenti riutilizzabili: CV, portfolio, preventivi. Salvati nel browser.</div>
+
+            {/* Drop zone */}
+            <div
+              className={"vault-drop"+(vaultDragOver?" drag-over":"")}
+              onClick={function(){vaultInputRef.current&&vaultInputRef.current.click();}}
+              onDragOver={function(e){e.preventDefault();setVaultDragOver(true);}}
+              onDragLeave={function(){setVaultDragOver(false);}}
+              onDrop={function(e){e.preventDefault();setVaultDragOver(false);vaultAddFiles(e.dataTransfer.files);}}
+            >
+              ↑ Trascina file qui o clicca per scegliere
+              <input ref={vaultInputRef} type="file" multiple style={{display:"none"}} onChange={function(e){vaultAddFiles(e.target.files);e.target.value="";}}/>
+            </div>
+
+            {/* File list */}
+            {vaultDocs.length>0?(
+              <div className="vault-grid" style={{marginTop:12}}>
+                {vaultDocs.map(function(doc){
+                  var canPreview=/image/.test(doc.type)||/pdf/.test(doc.type);
+                  return (
+                    <div key={doc.id} className="vault-item">
+                      <div className="vault-item-icon">{fileIcon(doc.type)}</div>
+                      <div className="vault-item-info">
+                        <div className="vault-item-name">{doc.name}</div>
+                        <div className="vault-item-meta">{fmtFileSize(doc.size)} · aggiunto {fmtDate(doc.addedAt)}</div>
+                      </div>
+                      <div className="vault-item-actions">
+                        {canPreview&&(
+                          <button className="btn btn-outline" style={{padding:"4px 8px",fontSize:11}} onClick={function(){openAttachPreview(doc.name,doc.dataUrl,doc.type);}}>👁</button>
+                        )}
+                        <button className="btn btn-outline" style={{padding:"4px 8px",fontSize:11,color:"var(--red)",borderColor:"rgba(192,57,43,.3)"}} onClick={function(){vaultDelete(doc.id);}}>✕</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ):(
+              <div style={{fontFamily:"DM Mono,monospace",fontSize:11,color:"var(--text3)",textAlign:"center",padding:"20px 0"}}>Nessun documento ancora.</div>
+            )}
+
+            <div className="setup-note" style={{marginTop:12}}>I file sono salvati nel localStorage del browser (~5MB totali). Per allegare un documento a un lavoro, aprilo dalla card → sezione "Dal Vault".</div>
           </div>
         </div>
       )}
