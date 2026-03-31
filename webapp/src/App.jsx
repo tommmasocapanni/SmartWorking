@@ -200,7 +200,7 @@ button{font-family:'DM Sans',sans-serif;cursor:pointer;border:none;outline:none;
 .box-color-row{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:5px}
 .box-color-name{font-family:'DM Mono',monospace;font-size:11px;color:var(--text);flex:1}
 .box-palette{display:flex;gap:5px;align-items:center}
-.box-palette-dot{width:16px;height:16px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s,border-color .15s;flex-shrink:0}
+.box-palette-dot{width:16px;height:16px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s,border-color .15s,box-shadow .15s;flex-shrink:0;box-shadow:0 0 0 1px rgba(128,128,128,.2)}
 .box-palette-dot:hover{transform:scale(1.2)}
 .box-palette-dot.selected{border-color:var(--text);transform:scale(1.15)}
 .box-palette-dot.none{background:var(--border2);position:relative}
@@ -1113,10 +1113,10 @@ export default function WorkRadar() {
               </>)}
             </>)}
             {setupTab==="colori"&&(<>
-              {allBoxes.length===0?(
-                <div className="box-loading">Sincronizza prima per vedere le cartelle.</div>
+              {(selectedBoxes.length===0&&allBoxes.length===0)?(
+                <div className="box-loading">Configura prima le cartelle nel tab "Cartelle".</div>
               ):(
-                allBoxes.map(function(box){
+                (selectedBoxes.length>0?selectedBoxes:allBoxes).map(function(box){
                   var currentColorId=boxColors[box]||"none";
                   return (
                     <div key={box} className="box-color-row">
@@ -1128,7 +1128,7 @@ export default function WorkRadar() {
                             <div
                               key={p.id}
                               className={"box-palette-dot"+(isSelected?" selected":"")+(p.id==="none"?" none":"")}
-                              style={{background:p.accent||"transparent",border:p.id==="none"?"1.5px dashed var(--border2)":isSelected?"2px solid var(--text)":"2px solid transparent"}}
+                              style={{background:p.accent||(p.id==="none"?"var(--surface2)":"transparent"),outline:isSelected?"2px solid var(--text)":"2px solid transparent",outlineOffset:"2px",border:p.id==="none"?"1.5px dashed var(--border2)":"none"}}
                               title={p.label}
                               onClick={function(){setBoxColor(box, p.id);}}
                             />
