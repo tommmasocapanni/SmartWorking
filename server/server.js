@@ -148,12 +148,23 @@ function fetchNewFromBox(imap, boxName, lastUID) {
               });
               var links = Object.keys(linkSet).slice(0, 10);
 
-              // Estrai allegati
+              // Estrai allegati — include base64 per immagini e PDF <= 2MB
               var allegati = (parsed.attachments || []).map(function(a) {
+                var ct = a.contentType || "application/octet-stream";
+                var sz = a.size || (a.content ? a.content.length : 0);
+                var canEmbed = sz <= 2 * 1024 * 1024 && /image\/|application\/pdf/.test(ct);
+                var dataUrl = null;
+                if (canEmbed && a.content) {
+                  try {
+                    var b64 = Buffer.isBuffer(a.content) ? a.content.toString("base64") : Buffer.from(a.content).toString("base64");
+                    dataUrl = "data:" + ct + ";base64," + b64;
+                  } catch(e) {}
+                }
                 return {
-                  filename: a.filename || "allegato",
-                  contentType: a.contentType || "application/octet-stream",
-                  size: a.size || 0,
+                  filename:    a.filename || "allegato",
+                  contentType: ct,
+                  size:        sz,
+                  dataUrl:     dataUrl,
                 };
               });
 
